@@ -1,0 +1,33 @@
+# Ignore Python compiled bytecode files
+*.pyc
+__pycache__/
+
+# Ignore environment-specific files
+env/
+venv/
+.venv/
+*.env
+
+# Ignore IDE files
+.vscode/
+.idea/
+
+# Ignore logs and cache files
+logs/
+cache/
+
+# Ignore data files
+*.csv
+*.xls
+*.xlsx
+*.json
+
+# Ignore package build files
+build/
+dist/
+*.egg-info/
+*.egg/
+
+# Ignore system files
+*.DS_Store
+Thumbs.db
