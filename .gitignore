@@ -31,3 +31,6 @@ dist/
 # Ignore system files
 *.DS_Store
 Thumbs.db
+
+# Ignore credentials files
+secrets.py
