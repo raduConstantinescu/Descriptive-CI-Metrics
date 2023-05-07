@@ -36,7 +36,7 @@ class RepoInfoExtractor:
         self.ci_dir_filter = [".circleci", ".github", ".github/workflows"]
 
     def extract_info_for_repo(self, repo_name):
-        repo = self.g.get_repo(repo_name.strip())
+        repo = self.g.get_repo(repo_name)
         workflows = repo.get_workflows()
         yml_files = self._extract_yml_files(repo)
 
