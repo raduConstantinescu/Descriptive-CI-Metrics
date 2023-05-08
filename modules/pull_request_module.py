@@ -13,7 +13,7 @@ class PullRequestModule(MiningModule):
     pulls : PaginatedList[PullRequest]
         An object where you can extract all kinds of pull request information from
     json : dict
-        Dictionary containing information about the commits
+        Dictionary containing information about the pull requests
 
     Methods
     -------
