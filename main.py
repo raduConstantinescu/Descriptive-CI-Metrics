@@ -1,6 +1,10 @@
 import json
 import time
+
 from github import Github
+
+from modules.CommitsModule import CommitsModule
+from modules.PullRequestModule import PullRequestModule
 
 
 class RepoInfoExtractor:
@@ -37,20 +41,22 @@ class RepoInfoExtractor:
 
     def extract_info_for_repo(self, repo_name):
         repo = self.g.get_repo(repo_name)
+
         workflows = repo.get_workflows()
         yml_files = self._extract_yml_files(repo)
 
         if workflows.totalCount > 0 or yml_files:
+            modules = [CommitsModule(repo), PullRequestModule(repo)]
+
             self.ci_repos[repo_name] = {
                 "repo": repo_name,
-                "commit_messages": [],
                 "check_runs": [],
-                "pull_request_titles": [],
-                "pull_request_bodies": [],
                 "md_file_content": []
             }
-            self._extract_commit_info(repo, repo_name)
-            self._extract_pull_request_info(repo, repo_name)
+
+            for module in modules:
+                self.ci_repos[repo_name].update(module.mine())
+
             self._extract_md_file_content(repo, repo_name)
 
     def _extract_yml_files(self, repo):
@@ -66,17 +72,6 @@ class RepoInfoExtractor:
                 if file_content.path.endswith(".yml") or file_content.path.endswith(".yaml"):
                     yml_files.append(file_content)
         return yml_files
-
-    def _extract_commit_info(self, repo, repo_name):
-        commits = repo.get_commits()
-        for commit in commits:
-            self.ci_repos[repo_name]["commit_messages"].append(commit.commit.message)
-
-    def _extract_pull_request_info(self, repo, repo_name):
-        repo.get_pulls()
-        for pull in repo.get_pulls(state='all'):
-            self.ci_repos[repo_name]["pull_request_titles"].append(pull.title)
-            self.ci_repos[repo_name]["pull_request_bodies"].append(pull.body)
 
     def _extract_md_file_content(self, repo, repo_name):
         contents = repo.get_contents("")
@@ -103,7 +98,7 @@ for repo_name in repos:
     extractor.extract_info_for_repo(repo_name)
 
 with open('result.json', 'w', encoding="utf-8") as f:
-    json.dump(extractor.ci_repos, f)
+    json.dump(extractor.ci_repos, f, indent=3)
 
 end = time.time()
 
