@@ -4,8 +4,10 @@ import os
 from dotenv import load_dotenv
 from github import Github
 
+
 def setup():
     load_dotenv()
+
 
 class RepoInfoExtractor:
     """
@@ -95,6 +97,7 @@ class RepoInfoExtractor:
                     self.ci_repos[repo_name]["md_file_content"].append(file_content.decoded_content.decode("utf-8"))
 
 
+setup()
 start = time.time()
 
 # Read repository names from a file
