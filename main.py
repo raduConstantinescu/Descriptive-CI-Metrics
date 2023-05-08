@@ -1,7 +1,11 @@
 import json
 import time
+import os
+from dotenv import load_dotenv
 from github import Github
 
+def setup():
+    load_dotenv()
 
 class RepoInfoExtractor:
     """
@@ -97,7 +101,7 @@ start = time.time()
 with open('repos.txt', encoding="utf-8") as f:
     repos = [line.strip() for line in f.readlines()]
 
-extractor = RepoInfoExtractor("<access_token>")
+extractor = RepoInfoExtractor(os.environ.get("GITHUB_ACCESS_TOKEN"))
 
 for repo_name in repos:
     extractor.extract_info_for_repo(repo_name)
