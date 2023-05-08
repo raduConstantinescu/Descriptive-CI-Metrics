@@ -1,6 +1,7 @@
 import json
 import time
-
+import os
+from dotenv import load_dotenv
 from github import Github
 
 from modules.CommitsModule import CommitsModule
