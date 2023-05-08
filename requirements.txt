@@ -1,2 +1,2 @@
 PyGithub==1.58.1
-load_dotenv==0.1.0
+python_dotenv==1.0.0
