@@ -3,9 +3,9 @@ import time
 import os
 from dotenv import load_dotenv
 from github import Github
-
-from modules.CommitsModule import CommitsModule
-from modules.PullRequestModule import PullRequestModule
+from modules import mining_module
+from modules.commits_module import CommitsModule
+from modules.pull_request_module import PullRequestModule
 
 
 def setup():
@@ -31,10 +31,6 @@ class RepoInfoExtractor:
         Extracts information for a given repository
     _extract_yml_files(repo)
         Extracts all the yml files in a repository
-    _extract_commit_info(repo, repo_name)
-        Extracts commit messages for a given repository
-    _extract_pull_request_info(repo, repo_name)
-        Extracts pull request titles and bodies for a given repository
     _extract_md_file_content(repo, repo_name)
         Extracts the content of all the md files in a given repository
     """
@@ -46,12 +42,13 @@ class RepoInfoExtractor:
 
     def extract_info_for_repo(self, repo_name):
         repo = self.g.get_repo(repo_name)
+        mining_module.MiningModule.repo = repo
 
         workflows = repo.get_workflows()
         yml_files = self._extract_yml_files(repo)
 
         if workflows.totalCount > 0 or yml_files:
-            modules = [CommitsModule(repo), PullRequestModule(repo)]
+            modules = [CommitsModule(), PullRequestModule()]
 
             self.ci_repos[repo_name] = {
                 "repo": repo_name,

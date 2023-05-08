@@ -1,5 +1,5 @@
 from enum import Enum
-from modules.MiningModule import MiningModule
+from modules.mining_module import MiningModule
 from modules.Exception import ModuleParamException
 class WorkflowModule(MiningModule):
     # Params, represent the information you want extracted from the Workflow Module.
