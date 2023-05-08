@@ -1,6 +1,7 @@
-from github import Github
 import json
 import time
+from github import Github
+
 
 class RepoInfoExtractor:
     """
@@ -12,7 +13,7 @@ class RepoInfoExtractor:
         Github object
     ci_repos : dict
         Dictionary containing information about the repositories
-    CI_dir_filter : list
+    ci_dir_filter : list
         List of directories to look for CI files in
 
     Methods
@@ -28,14 +29,14 @@ class RepoInfoExtractor:
     _extract_md_file_content(repo, repo_name)
         Extracts the content of all the md files in a given repository
     """
-    
+
     def __init__(self, access_token):
         self.g = Github(access_token)
         self.ci_repos = {}
-        self.CI_dir_filter = [".circleci", ".github", ".github/workflows"]
-    
+        self.ci_dir_filter = [".circleci", ".github", ".github/workflows"]
+
     def extract_info_for_repo(self, repo_name):
-        repo = self.g.get_repo(repo_name.strip())
+        repo = self.g.get_repo(repo_name)
         workflows = repo.get_workflows()
         yml_files = self._extract_yml_files(repo)
 
@@ -51,13 +52,13 @@ class RepoInfoExtractor:
             self._extract_commit_info(repo, repo_name)
             self._extract_pull_request_info(repo, repo_name)
             self._extract_md_file_content(repo, repo_name)
-    
+
     def _extract_yml_files(self, repo):
         contents = repo.get_contents("")
         yml_files = []
         while contents:
             file_content = contents.pop(0)
-            if file_content.type == "dir" and file_content.name in self.CI_dir_filter:
+            if file_content.type == "dir" and file_content.name in self.ci_dir_filter:
                 contents.extend(repo.get_contents(file_content.path))
             else:
                 if file_content.path == ".github/workflows":
@@ -65,23 +66,23 @@ class RepoInfoExtractor:
                 if file_content.path.endswith(".yml") or file_content.path.endswith(".yaml"):
                     yml_files.append(file_content)
         return yml_files
-    
+
     def _extract_commit_info(self, repo, repo_name):
         commits = repo.get_commits()
         for commit in commits:
             self.ci_repos[repo_name]["commit_messages"].append(commit.commit.message)
-            
+
     def _extract_pull_request_info(self, repo, repo_name):
         repo.get_pulls()
         for pull in repo.get_pulls(state='all'):
             self.ci_repos[repo_name]["pull_request_titles"].append(pull.title)
             self.ci_repos[repo_name]["pull_request_bodies"].append(pull.body)
-            
+
     def _extract_md_file_content(self, repo, repo_name):
         contents = repo.get_contents("")
         while contents:
             file_content = contents.pop(0)
-            if file_content.type == "dir" and file_content.name in self.CI_dir_filter:
+            if file_content.type == "dir" and file_content.name in self.ci_dir_filter:
                 contents.extend(repo.get_contents(file_content.path))
             else:
                 if file_content.path == ".github/workflows":
@@ -89,24 +90,21 @@ class RepoInfoExtractor:
                 if file_content.path.endswith(".md"):
                     self.ci_repos[repo_name]["md_file_content"].append(file_content.decoded_content.decode("utf-8"))
 
-# Read repository names from a file
-# TODO: decide how to get the list of repositories
-# with open('repos.txt') as f:
-#     repos = f.readlines()
-
 
 start = time.time()
-repos = ["google/zx", "Netflix/zuul"]
+
+# Read repository names from a file
+with open('repos.txt', encoding="utf-8") as f:
+    repos = [line.strip() for line in f.readlines()]
 
 extractor = RepoInfoExtractor("<access_token>")
 
 for repo_name in repos:
     extractor.extract_info_for_repo(repo_name)
 
-with open('result.json', 'w') as f:
+with open('result.json', 'w', encoding="utf-8") as f:
     json.dump(extractor.ci_repos, f)
 
 end = time.time()
 
 print("Time taken: ", end - start)
-
