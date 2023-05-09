@@ -53,7 +53,7 @@ class RepoInfoExtractor:
         yml_files = self._extract_yml_files(repo)
 
         if workflows.totalCount > 0 or yml_files:
-            modules = [CommitsModule(), PullRequestModule()]
+            modules = [CommitsModule(), PullRequestModule(['titles'])]
 
             self.ci_repos[repo_name] = {
                 "repo": repo_name,

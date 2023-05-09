@@ -31,10 +31,10 @@ class WorkflowModule(MiningModule):
     """
 
     # Params, represent the information you want extracted from the Workflow Module.
-    def __init__(self, repo, params):
+    def __init__(self, repo, params=None):
         self.workflows = repo.get_workflows()
         self.json = {'workflows': {}}
-        self.params = params
+        self.params = [c.value for c in WorkflowParams] if params is None else params
 
     def mine(self):
         """Mines all the data in self.params and returns a dictionary with all the mined data"""
@@ -44,9 +44,9 @@ class WorkflowModule(MiningModule):
 
     # Maps Workflow Param Enum to Param Extractor Function
     def _extract_param_info(self, param):
-        if param == WorkflowParams.COUNT:
+        if param in (WorkflowParams.COUNT, WorkflowParams.COUNT.value):
             self._extract_workflow_count()
-        elif param == WorkflowParams.NAME:
+        elif param in (WorkflowParams.NAME, WorkflowParams.NAME.value):
             self._extract_workflow_name()
         else:
             raise ModuleParamException("Module does not have param: " + str(param))
