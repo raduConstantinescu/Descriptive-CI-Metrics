@@ -1,15 +1,39 @@
+"""Module for mining popularity information"""
 from enum import Enum
 
-from modules.Exception import ModuleParamException
-from modules.MiningModule import MiningModule
+from modules.exception import ModuleParamException
+from modules.mining_module import MiningModule
 
-# This module helps extract data that is believed to indicate information about a project's popularity, namely:
-#     - number of stars
-#     - number of watchers
-#     - number of forks
-# This can be extended with other information retrieval methods if considered appropriate for describing a project's
-# popularity.
+
 class PopularityModule(MiningModule):
+    """
+    This module extracts data that is believed to indicate information about a project's popularity:
+    - number of stars
+    - number of watchers
+    - number of forks
+    This can be extended with other information retrieval methods if
+     considered appropriate for describing a project's popularity.
+
+    Attributes:
+        repo: Repository
+            The repository object for which popularity information is to be extracted.
+        params: dict
+            A list of parameters to extract. Valid options are:
+            STAR_COUNT, WATCHERS_COUNT, FORKS_COUNT.
+
+    Methods:
+        mine():
+            Extracts information based on the list of parameters and returns a JSON object.
+        _extract_param_info(param):
+            Extracts the specified parameter's information from the repository
+            and adds it to the JSON object.
+        _extract_star_count():
+            Extracts the number of stars for the repository.
+        _extract_watchers_count():
+            Extracts the number of watchers for the repository.
+        _extract_forks_count():
+            Extracts the number of forks for the repository.
+    """
     def __init__(self, repo, params):
         self.repo = repo
         self.json = {'popularity': {}}
@@ -41,6 +65,9 @@ class PopularityModule(MiningModule):
 
 
 class PopularityParams(Enum):
+    """
+    A class that holds enum values for the functions in the popularity class
+    """
     STAR_COUNT = 'stars_count'
     WATCHERS_COUNT = 'watchers_count'
     FORKS_COUNT = 'forks_count'
