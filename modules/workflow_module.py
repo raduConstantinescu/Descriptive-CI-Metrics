@@ -44,9 +44,9 @@ class WorkflowModule(MiningModule):
 
     # Maps Workflow Param Enum to Param Extractor Function
     def _extract_param_info(self, param):
-        if param == WorkflowParams.COUNT:
+        if param in (WorkflowParams.COUNT, WorkflowParams.COUNT.value):
             self._extract_workflow_count()
-        elif param == WorkflowParams.NAME:
+        elif param in (WorkflowParams.NAME, WorkflowParams.NAME.value):
             self._extract_workflow_name()
         else:
             raise ModuleParamException("Module does not have param: " + str(param))
