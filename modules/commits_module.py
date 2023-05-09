@@ -32,10 +32,10 @@ class CommitsModule(MiningModule):
         Extracts the number of commits from a repository
     """
 
-    def __init__(self, params):
+    def __init__(self, params=None):
         self.commits = super().repo.get_commits()
         self.json = {'commits': {}}
-        self.params = params
+        self.params = [c.value for c in CommitParams] if params is None else params
 
     def mine(self):
         """Mines all the data in self.params and returns a dictionary with all the mined data"""

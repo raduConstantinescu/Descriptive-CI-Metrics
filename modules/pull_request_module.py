@@ -30,10 +30,10 @@ class PullRequestModule(MiningModule):
         Extracts all pull request bodies from a repository
     """
 
-    def __init__(self, params):
+    def __init__(self, params=None):
         self.pulls = super().repo.get_pulls(state='all')
         self.json = {'pull_requests': {}}
-        self.params = params
+        self.params = [c.value for c in PullRequestParams] if params is None else params
 
     def mine(self):
         """Mines all the data in self.params and returns a dictionary with all the mined data"""

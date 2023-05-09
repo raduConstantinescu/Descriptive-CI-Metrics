@@ -31,10 +31,10 @@ class WorkflowModule(MiningModule):
     """
 
     # Params, represent the information you want extracted from the Workflow Module.
-    def __init__(self, repo, params):
+    def __init__(self, repo, params=None):
         self.workflows = repo.get_workflows()
         self.json = {'workflows': {}}
-        self.params = params
+        self.params = [c.value for c in WorkflowParams] if params is None else params
 
     def mine(self):
         """Mines all the data in self.params and returns a dictionary with all the mined data"""
