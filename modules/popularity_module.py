@@ -34,8 +34,8 @@ class PopularityModule(MiningModule):
         _extract_forks_count():
             Extracts the number of forks for the repository.
     """
-    def __init__(self, repo, params):
-        self.repo = repo
+    def __init__(self, params):
+        self.repo = super().repo
         self.json = {'popularity': {}}
         self.params = params
 

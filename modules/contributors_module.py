@@ -27,10 +27,12 @@ class ContributorsModule(MiningModule):
     _extract_contributors_count():
         Extracts the total number of contributors to the repository.
     _extract_contributions_per_contributor():
-        Extracts the total number of contributions per contributor to the repository.
+        Extract the number of contributions for the top 50% contributors to the repository,
+         who also have more than 10 commits.
     """
-    def __init__(self, repo, params):
-        self.contributors = repo.get_contributors()
+    def __init__(self, params):
+        self.repo = super().repo
+        self.contributors = self.repo.get_contributors()
         self.json = {'contributors': {}}
         self.params = params
 
@@ -50,9 +52,15 @@ class ContributorsModule(MiningModule):
     def _extract_contributors_count(self):
         self.json['contributors']['count'] = self.contributors.totalCount
 
+
     def _extract_contributions_per_contributor(self):
-        self.json['contributors']['contributions_per_contributor'] = \
-            [(contributor.login, contributor.contributions) for contributor in self.contributors]
+        sorted_contributors = sorted(self.contributors, key=lambda x: x.contributions, reverse=True)
+        top_percentage = int(len(sorted_contributors) * 0.5)
+        filtered_contributors = [(contributor.login, contributor.contributions)
+                                 for contributor in sorted_contributors[:top_percentage]
+                                 if contributor.contributions >= 10]
+
+        self.json['contributors']['contributions_per_contributor'] = filtered_contributors
 
 
 class ContributorsParams(Enum):
