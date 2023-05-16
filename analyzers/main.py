@@ -1,7 +1,9 @@
 import github
+from dateutil.parser import isoparse
 from github import Github
 from dotenv import load_dotenv
 import matplotlib.pyplot as plt
+from collections import defaultdict
 import os
 import re
 import argparse
@@ -197,13 +199,123 @@ class JobFetcher(PipelineStage):
                 continue
 
             job_data = response.json()
-            jobs.extend(job_data['jobs'])
+            for job in job_data['jobs']:
+                filtered_job = {
+                    'id': job['id'],
+                    'run_id': job['run_id'],
+                    'workflow_name': workflow['name'],
+                    'status': job['status'],
+                    'conclusion': job['conclusion'],
+                    'created_at': job['created_at'],
+                    'started_at': job['started_at'],
+                    'completed_at': job['completed_at'],
+                    'name': job['name'],
+                    'steps': job['steps']
+                }
+                jobs.append(filtered_job)
 
         return {
             'workflow': workflow,
             'analysis': workflow_analysis['analysis'],
             'jobs': jobs
         }
+
+class BuildJobFilter(PipelineStage):
+    def __init__(self, verbose=False):
+        self.verbose = verbose
+
+    def run(self, input):
+        with open(input, 'r') as f:
+            workflow_jobs = json.load(f)
+
+        build_jobs = {}
+        for repo, wfs in workflow_jobs.items():
+            if self.verbose:
+                print(f"Filtering build jobs for repo: {repo}")
+            build_jobs[repo] = [self.filter_build_jobs(wf) for wf in wfs]
+
+        os.makedirs('output', exist_ok=True)
+        output_path = os.path.join('output', 'build_jobs.json')
+        with open(output_path, 'w') as f:
+            json.dump(build_jobs, f, indent=4)
+        return output_path
+
+    def filter_build_jobs(self, workflow):
+        jobs = workflow['jobs']
+        build_jobs = []
+        for job in jobs:
+            if "build" in job['workflow_name'].lower() or "build" in job['name'].lower():
+                build_jobs.append(job)
+            else:
+                for step in job['steps']:
+                    if "build" in step['name'].lower():
+                        build_jobs.append(job)
+                        break
+        return {
+            'workflow': workflow['workflow'],
+            'analysis': workflow['analysis'],
+            'jobs': build_jobs
+        }
+
+class ExecutionTimePlotter(PipelineStage):
+    def __init__(self, verbose=False):
+        self.verbose = verbose
+
+    def run(self, input):
+        with open(input, 'r') as f:
+            build_jobs = json.load(f)
+
+        execution_times = defaultdict(list)
+
+        for repo, wfs in build_jobs.items():
+            for wf in wfs:
+                for job in wf['jobs']:
+                    for step in job['steps']:
+                        start_time = isoparse(step['started_at'])
+                        end_time = isoparse(step['completed_at'])
+                        execution_time = (end_time - start_time).total_seconds()
+                        if 'build' in step['name'].lower():
+                            execution_times[repo].append(execution_time)
+
+        for repo, times in execution_times.items():
+            plt.plot(times, label=repo)
+        plt.legend()
+        plt.xlabel('Run number')
+        plt.ylabel('Execution time (s)')
+        plt.title('Execution times of build steps over time')
+        plt.savefig('output/execution_times.png')
+
+        return input  # Pass the input through to the next stage
+
+class SuccessRateCalculator(PipelineStage):
+    def __init__(self, verbose=False):
+        self.verbose = verbose
+
+    def run(self, input):
+        with open(input, 'r') as f:
+            build_jobs = json.load(f)
+
+        success_rates = {}
+
+        for repo, wfs in build_jobs.items():
+            success_count = 0
+            total_count = 0
+            for wf in wfs:
+                for job in wf['jobs']:
+                    total_count += 1
+                    if job['status'] == 'success':
+                        success_count += 1
+            success_rates[repo] = success_count / total_count if total_count != 0 else 0
+
+        os.makedirs('output', exist_ok=True)
+        output_path = os.path.join('output', 'success_rates.json')
+        with open(output_path, 'w') as f:
+            json.dump(success_rates, f, indent=4)
+
+        return output_path
+
+
+
 
 def main():
     parser = argparse.ArgumentParser(description='CI Build Performance Analyzer.')
@@ -216,7 +328,10 @@ def main():
         WorkflowFilter(),
         WorkflowAnalyser(),
         CIPlotter(),
-        JobFetcher(verbose=True)
+        JobFetcher(verbose=True),
+        BuildJobFilter(verbose=True),
+        ExecutionTimePlotter(),
+        SuccessRateCalculator()
     ]
 
     input = 'repos.txt'
