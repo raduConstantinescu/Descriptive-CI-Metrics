@@ -1,13 +1,14 @@
-import time
-
 import github
 from github import Github
 from dotenv import load_dotenv
 import matplotlib.pyplot as plt
 import os
-import json
 import re
 import argparse
+import requests
+import json
+import time
+
 
 load_dotenv()
 
@@ -132,6 +133,7 @@ class WorkflowAnalyser(PipelineStage):
             if conclusion == 'success':
                 successful_runs += 1
             result.append({
+                'id' : run.id,
                 'conclusion': conclusion,
                 'execution_time': (run.updated_at - run.created_at).total_seconds(),
             })
@@ -153,6 +155,55 @@ class WorkflowAnalyser(PipelineStage):
                     raise  # Some other error occurred, re-raise the exception
         raise Exception("Failed to get workflow runs after multiple retries")
 
+class JobFetcher(PipelineStage):
+    def __init__(self, verbose=False):
+        self.verbose = verbose
+
+    def run(self, input):
+        with open(input, 'r') as f:
+            analysis = json.load(f)
+
+        jobs_analysis = {}
+        for repo, workflow_analyses in analysis.items():
+            if self.verbose:
+                print(f"Processing repo: {repo}")
+            jobs_analysis[repo] = [self.fetch_jobs_for_workflow_analysis(repo, wf_analysis) for wf_analysis in workflow_analyses]
+
+        os.makedirs('output', exist_ok=True)
+        output_path = os.path.join('output', 'workflow_jobs.json')
+        with open(output_path, 'w') as f:
+            json.dump(jobs_analysis, f, indent=4)
+        return output_path
+
+    def fetch_jobs_for_workflow_analysis(self, repo, workflow_analysis):
+        workflow = workflow_analysis['workflow']
+        run_ids = [analysis['id'] for analysis in workflow_analysis['analysis']]
+
+        try:
+            if self.verbose:
+                print(f"Fetching jobs for workflow: {workflow['name']} for repo: {repo}")
+        except KeyError as e:
+            print(f"KeyError: {str(e)}")
+            print(f"Workflow: {workflow}")
+            return {}
+
+        headers = {'Authorization': f'token {os.getenv("GITHUB_ACCESS_TOKEN")}'}
+        jobs = []
+        for run_id in run_ids:
+            url = f"https://api.github.com/repos/{repo}/actions/runs/{run_id}/jobs"
+            response = requests.get(url, headers=headers)
+            if response.status_code != 200:
+                print(f"Failed to fetch jobs for run {run_id}: {response.status_code}")
+                continue
+
+            job_data = response.json()
+            jobs.extend(job_data['jobs'])
+
+        return {
+            'workflow': workflow,
+            'analysis': workflow_analysis['analysis'],
+            'jobs': jobs
+        }
 
 def main():
     parser = argparse.ArgumentParser(description='CI Build Performance Analyzer.')
@@ -165,6 +216,7 @@ def main():
         WorkflowFilter(),
         WorkflowAnalyser(),
         CIPlotter(),
+        JobFetcher(verbose=True)
     ]
 
     input = 'repos.txt'
