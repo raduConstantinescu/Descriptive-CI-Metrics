@@ -1,10 +1,12 @@
-"""Module for mining workflow information"""
+"""Module for mining workflow config files"""
 import dataclasses
+
 from enum import Enum
+import os
+
 from modules.mining_module import MiningModule
 from modules.exception import ModuleParamException
 
-import os
 
 
 @dataclasses.dataclass
@@ -62,11 +64,11 @@ class WorkflowConfigModule(MiningModule):
         while contents:
             config_file = contents.pop(0)
 
-            if (self._is_yml_file(config_file.name)):
+            if self._is_yml_file(config_file.name):
                 self.json['workflow_files'].append(config_file.path)
                 self._store_config_file('github-actions', config_file)
 
-    
+
     def _extract_travis_ci_config(self):
         contents = super().repo.get_contents("")
 
@@ -80,7 +82,7 @@ class WorkflowConfigModule(MiningModule):
 
     def _is_yml_file(self, filename):
         return filename.endswith('.yml') or filename.endswith('.yaml')
-    
+
     def _store_config_file(self, platform_name, config_file):
         out_filename = "out/" + super().repo.name + "/" + platform_name + "/" + config_file.name
 
