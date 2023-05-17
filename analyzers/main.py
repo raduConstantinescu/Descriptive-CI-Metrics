@@ -14,7 +14,6 @@ import time
 
 load_dotenv()
 
-
 class PipelineStage:
     def run(self, input):
         raise NotImplementedError()
@@ -130,7 +129,7 @@ class WorkflowAnalyser(PipelineStage):
         runs = self.get_workflow_runs_with_retry(repo_obj, wf_obj)
         result = []
         successful_runs = 0
-        for run in runs[:10]:
+        for run in runs[:200]:
             conclusion = run.conclusion
             if conclusion == 'success':
                 successful_runs += 1
@@ -142,7 +141,7 @@ class WorkflowAnalyser(PipelineStage):
         return {
             'workflow': workflow,
             'analysis': result,
-            'success_rate': successful_runs / 10 if runs.totalCount >= 10 else successful_runs / runs.totalCount,
+            'success_rate': successful_runs / 200 if runs.totalCount >= 200 else successful_runs / runs.totalCount,
         }
 
     def get_workflow_runs_with_retry(self, repo_obj, wf_obj, retries=3, delay=5):
@@ -293,29 +292,44 @@ class SuccessRateCalculator(PipelineStage):
 
     def run(self, input):
         with open(input, 'r') as f:
-            build_jobs = json.load(f)
+            workflow_jobs = json.load(f)
 
-        success_rates = {}
+        stats = {}
 
-        for repo, wfs in build_jobs.items():
-            success_count = 0
-            total_count = 0
-            for wf in wfs:
-                for job in wf['jobs']:
-                    total_count += 1
-                    if job['status'] == 'success':
-                        success_count += 1
-            success_rates[repo] = success_count / total_count if total_count != 0 else 0
+        for repo, workflows in workflow_jobs.items():
+            build_jobs = []
+            for workflow in workflows:
+                build_jobs.extend(workflow['analysis'])
+
+            total_runs = len(build_jobs)
+            successful_runs = len([job for job in build_jobs if job['conclusion'] == 'success'])
+            failed_runs = total_runs - successful_runs
+
+            if total_runs > 0:
+                success_rate = successful_runs / total_runs
+                total_execution_time = sum([job['execution_time'] for job in build_jobs])
+                average_execution_time = total_execution_time / total_runs
+                build_performance = average_execution_time * success_rate
+            else:
+                success_rate = 0.0
+                average_execution_time = 0.0
+                build_performance = 0.0
+
+            stats[repo] = {
+                "success_rate": success_rate,
+                "total_runs": total_runs,
+                "successful_runs": successful_runs,
+                "failed_runs": failed_runs,
+                "average_execution_time": average_execution_time,
+                "build_performance": build_performance,
+            }
 
         os.makedirs('output', exist_ok=True)
         output_path = os.path.join('output', 'success_rates.json')
         with open(output_path, 'w') as f:
-            json.dump(success_rates, f, indent=4)
+            json.dump(stats, f, indent=4)
 
         return output_path
-
-
-
 
 def main():
     parser = argparse.ArgumentParser(description='CI Build Performance Analyzer.')
