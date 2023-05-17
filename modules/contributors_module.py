@@ -30,11 +30,12 @@ class ContributorsModule(MiningModule):
         Extract the number of contributions for the top 50% contributors to the repository,
          who also have more than 10 commits.
     """
-    def __init__(self, params):
+    def __init__(self, params, top_percentage_of_contributors=0.5):
         self.repo = super().repo
         self.contributors = self.repo.get_contributors()
         self.json = {'contributors': {}}
         self.params = params
+        self.top_percentage_of_contributors = top_percentage_of_contributors
 
     def mine(self):
         for param in self.params:
@@ -55,10 +56,9 @@ class ContributorsModule(MiningModule):
 
     def _extract_contributions_per_contributor(self):
         sorted_contributors = sorted(self.contributors, key=lambda x: x.contributions, reverse=True)
-        top_percentage = int(len(sorted_contributors) * 0.5)
+        top_percentage = int(len(sorted_contributors) * self.top_percentage_of_contributors)
         filtered_contributors = [(contributor.login, contributor.contributions)
-                                 for contributor in sorted_contributors[:top_percentage]
-                                 if contributor.contributions >= 10]
+                                 for contributor in sorted_contributors[:top_percentage]]
 
         self.json['contributors']['contributions_per_contributor'] = filtered_contributors
 
