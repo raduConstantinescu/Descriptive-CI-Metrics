@@ -9,7 +9,7 @@ from modules.mining_module import MiningModule
 @dataclasses.dataclass
 class RepositoryModule(MiningModule):
     """
-    This class mines commit information
+    This class mines repository information
 
     Attributes
     ----------
