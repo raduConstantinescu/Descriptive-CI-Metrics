@@ -52,17 +52,17 @@ class SizeModule(MiningModule):
         return self.json
 
     def _extract_param_info(self, param):
-        if param == SizeParams.REPO_SIZE:
+        if param in (SizeParams.REPO_SIZE, SizeParams.REPO_SIZE.value):
             self._extract_repo_size()
-        elif param == SizeParams.COUNT_FILES:
+        elif param in (SizeParams.COUNT_FILES, SizeParams.COUNT_FILES.value):
             self._extract_number_of_files()
-        elif param == SizeParams.COUNT_DIRECTORIES:
+        elif param in (SizeParams.COUNT_DIRECTORIES, SizeParams.COUNT_DIRECTORIES.value):
             self._extract_number_of_directories()
-        elif param == SizeParams.COUNT_BRANCHES:
+        elif param in (SizeParams.COUNT_BRANCHES, SizeParams.COUNT_BRANCHES.value):
             self._extract_number_of_branches()
-        elif param == SizeParams.COUNT_COMMITS:
+        elif param in (SizeParams.COUNT_COMMITS, SizeParams.COUNT_COMMITS.value):
             self._extract_commit_count()
-        elif param == SizeParams.COUNT_CONTRIBUTORS:
+        elif param in (SizeParams.COUNT_CONTRIBUTORS, SizeParams.COUNT_CONTRIBUTORS.value):
             self._extract_contributors_count()
         else:
             raise ModuleParamException("Module does not have param: " + str(param))

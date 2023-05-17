@@ -45,11 +45,11 @@ class PopularityModule(MiningModule):
         return self.json
 
     def _extract_param_info(self, param):
-        if param == PopularityParams.STAR_COUNT:
+        if param in (PopularityParams.STAR_COUNT, PopularityParams.STAR_COUNT.value):
             self._extract_star_count()
-        elif param == PopularityParams.WATCHERS_COUNT:
+        elif param in (PopularityParams.WATCHERS_COUNT,PopularityParams.WATCHERS_COUNT.value):
             self._extract_watchers_count()
-        elif param == PopularityParams.FORKS_COUNT:
+        elif param in (PopularityParams.FORKS_COUNT, PopularityParams.FORKS_COUNT.value):
             self._extract_forks_count()
         else:
             raise ModuleParamException("Module does not have param: " + str(param))

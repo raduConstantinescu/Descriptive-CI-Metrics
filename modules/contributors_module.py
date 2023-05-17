@@ -43,9 +43,10 @@ class ContributorsModule(MiningModule):
         return self.json
 
     def _extract_param_info(self, param):
-        if param == ContributorsParams.COUNT:
+        if param in (ContributorsParams.COUNT, ContributorsParams.COUNT.value):
             self._extract_contributors_count()
-        elif param == ContributorsParams.CONTRIBUTION_COUNT:
+        elif param in (ContributorsParams.CONTRIBUTION_COUNT,
+                       ContributorsParams.CONTRIBUTION_COUNT.value):
             self._extract_contributions_per_contributor()
         else:
             raise ModuleParamException("Module does not have param: " + str(param))
