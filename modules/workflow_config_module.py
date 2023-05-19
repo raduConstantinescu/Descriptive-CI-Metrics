@@ -6,6 +6,7 @@ import os
 
 from github import GithubException
 
+from modules.commits_module import CommitParams, CommitsModule
 from modules.mining_module import MiningModule
 from modules.exception import ModuleParamException
 
@@ -59,6 +60,8 @@ class WorkflowConfigModule(MiningModule):
             self._extract_github_actions_config()
         elif param in (WorkflowConfigParams.TRAVIS_CI_CONFIG, WorkflowConfigParams.TRAVIS_CI_CONFIG.value):
             self._extract_travis_ci_config()
+        elif param in (WorkflowConfigParams.COMMITS, WorkflowConfigParams.COMMITS.value):
+            self._extract_commits()
         else:
             raise ModuleParamException("Module does not have param: " + str(param))
 
@@ -95,6 +98,13 @@ class WorkflowConfigModule(MiningModule):
         except GithubException:
             self.json['workflow_platforms']['travis_ci'] = False
 
+    def _extract_commits(self):
+        for file in self.json['workflow_files']:
+            print(file)
+            commit_module = CommitsModule([CommitParams.COMMIT_META], path=file['path'])
+            commits = commit_module.mine()
+            file['commits'] = commits['commits']['meta']
+
 
     def _is_yml_file(self, filename):
         return filename.endswith('.yml') or filename.endswith('.yaml')
@@ -116,3 +126,4 @@ class WorkflowConfigParams(Enum):
     """
     GITHUB_ACTIONS_CONFIG = 'github_actions_config'
     TRAVIS_CI_CONFIG = 'travis_ci_config'
+    COMMITS = 'commits'

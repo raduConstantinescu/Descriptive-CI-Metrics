@@ -30,10 +30,14 @@ class CommitsModule(MiningModule):
         Extracts all the commit messages from a repository
     _extract_commit_count()
         Extracts the number of commits from a repository
+    _extract_commit_meta()
+        Extracts the changes per file in commits from a repository
     """
 
-    def __init__(self, params=None):
-        self.commits = super().repo.get_commits()
+    def __init__(self, params=None, path=None):
+        self.path = path
+        self.commits = self.repo.get_commits(path=path)
+
         self.json = {'commits': {}}
         self.params = [c.value for c in CommitParams] if params is None else params
 
@@ -48,6 +52,8 @@ class CommitsModule(MiningModule):
             self._extract_commit_messages()
         elif param in (CommitParams.COUNT, CommitParams.COUNT.value):
             self._extract_commit_count()
+        elif param in (CommitParams.COMMIT_META, CommitParams.COMMIT_META.value):
+            self._extract_commit_meta()
         else:
             raise ModuleParamException("Module does not have param: " + str(param))
 
@@ -57,6 +63,27 @@ class CommitsModule(MiningModule):
     def _extract_commit_count(self):
         self.json['commits']['count'] = self.commits.totalCount
 
+    def _extract_commit_meta(self):
+        self.json['commits']['meta'] = []
+
+        for commit in self.commits:
+            files = [file for file in commit.files if file.filename == self.path] if self.path else commit.files
+            config_file = next(files, None)
+
+            file_meta = {
+                'status': config_file.status,
+                'additions': config_file.additions,
+                'deletions': config_file.deletions,
+                'changes': config_file.changes,
+            } if config_file else None
+
+            self.json['commits']['meta'].append({
+                'message': commit.commit.message,
+                'date': commit.commit.last_modified,
+                'sha': commit.commit.sha,
+                'file': file_meta
+            })
+
 
 class CommitParams(Enum):
     """
@@ -64,3 +91,4 @@ class CommitParams(Enum):
     """
     MESSAGES = 'messages'
     COUNT = 'count'
+    COMMIT_META = 'commit_meta'
