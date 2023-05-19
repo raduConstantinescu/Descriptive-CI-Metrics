@@ -4,10 +4,11 @@ import dataclasses
 from enum import Enum
 import os
 
+from github import GithubException
+
 from modules.mining_module import MiningModule
 from modules.exception import ModuleParamException
-
-
+from modules.commits_module import CommitParams, CommitsModule
 
 @dataclasses.dataclass
 class WorkflowConfigModule(MiningModule):
@@ -40,8 +41,12 @@ class WorkflowConfigModule(MiningModule):
     # Default behaviour: no params passed: all workflow information extracted.
     def __init__(self, params=None):
         self.json = {
-                     'workflow_files': []
-                     }
+                        'workflow_files': [],
+                        'workflow_platforms': {
+                            'github_actions': True,
+                            'travis_ci': True
+                        }
+                    }
         self.params = [c.value for c in WorkflowConfigParams] if params is None else params
 
     def mine(self):
@@ -59,25 +64,37 @@ class WorkflowConfigModule(MiningModule):
             raise ModuleParamException("Module does not have param: " + str(param))
 
     def _extract_github_actions_config(self):
-        contents = super().repo.get_contents(".github/workflows")
+        try:
+            contents = super().repo.get_contents(".github/workflows")
 
-        while contents:
-            config_file = contents.pop(0)
+            while contents:
+                config_file = contents.pop(0)
 
-            if self._is_yml_file(config_file.name):
-                self.json['workflow_files'].append(config_file.path)
-                self._store_config_file('github-actions', config_file)
+                if self._is_yml_file(config_file.name):
+                    self.json['workflow_files'].append({ 'platform': 'github_actions', 'path': config_file.path})
+                    self._store_config_file('github-actions', config_file)
+        except GithubException:
+            self.json['workflow_platforms']['github_actions'] = False
 
 
     def _extract_travis_ci_config(self):
-        contents = super().repo.get_contents("")
+        try:
+            contents = super().repo.get_contents("")
+            travis_ci_detected = False
 
-        while contents:
-            config_file = contents.pop(0)
+            while contents and not travis_ci_detected:
+                config_file = contents.pop(0)
 
-            if (self._is_yml_file(config_file.name) and config_file.name.startswith('.travis')):
-                self.json['workflow_files'].append(config_file.path)
-                self._store_config_file('travis-ci', config_file)
+                if (self._is_yml_file(config_file.name) and config_file.name.startswith('.travis')):
+                    travis_ci_detected = True
+                    self.json['workflow_files'].append({ 'platform': 'travis_ci', 'path': config_file.path})
+                    self._store_config_file('travis-ci', config_file)
+    
+            if not travis_ci_detected:
+                self.json['workflow_platforms']['travis_ci'] = False
+
+        except GithubException:
+            self.json['workflow_platforms']['travis_ci'] = False
 
 
     def _is_yml_file(self, filename):
