@@ -8,7 +8,6 @@ from github import GithubException
 
 from modules.mining_module import MiningModule
 from modules.exception import ModuleParamException
-from modules.commits_module import CommitParams, CommitsModule
 
 @dataclasses.dataclass
 class WorkflowConfigModule(MiningModule):
@@ -89,7 +88,7 @@ class WorkflowConfigModule(MiningModule):
                     travis_ci_detected = True
                     self.json['workflow_files'].append({ 'platform': 'travis_ci', 'path': config_file.path})
                     self._store_config_file('travis-ci', config_file)
-    
+
             if not travis_ci_detected:
                 self.json['workflow_platforms']['travis_ci'] = False
 
