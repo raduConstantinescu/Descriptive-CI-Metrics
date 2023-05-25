@@ -20,6 +20,7 @@ class TopicsModule(MiningModule):
         The main entry point to this class. Calling this function will mine all the data in the body
     """
     def __init__(self):
+        print(f"Extracting topics data for repo {super().repo.full_name}")
         self.topics = super().repo.get_topics()
 
         self.json = {'topics': self.topics}

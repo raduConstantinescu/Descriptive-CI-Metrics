@@ -4,6 +4,8 @@ from enum import Enum
 
 from modules.exception import ModuleParamException
 from modules.mining_module import MiningModule
+from multiprocessing import Pool
+import time
 
 
 @dataclasses.dataclass
@@ -39,13 +41,18 @@ class CommitsModule(MiningModule):
 
     def __init__(self, params=None):
         self.commits = super().repo.get_commits()
+        print(f"Number of commits: {self.commits.totalCount}")
         self.json = {'commits': {}}
         self.params = [c.value for c in CommitParams] if params is None else params
 
     def mine(self):
         """Mines all the data in self.params and returns a dictionary with all the mined data"""
+        start = time.time()
         for param in self.params:
             self._extract_param_info(param)
+        end = time.time()
+        self.json['commits']['count'] = self.commits.totalCount
+        self.json['commits']['time_taken'] = end - start
         return self.json
 
     def _extract_param_info(self, param):
