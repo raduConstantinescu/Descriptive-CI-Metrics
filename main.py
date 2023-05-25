@@ -8,6 +8,7 @@ import queue
 import sys
 from dotenv import load_dotenv
 from github import Github
+from github.GithubException import RateLimitExceededException
 from modules.mining_module import MiningModule
 from modules.commits_module import CommitsModule
 from modules.pull_request_module import PullRequestModule
@@ -74,6 +75,17 @@ class RepoInfoExtractor:
         if self.verbose:
             print("Extractor initialized. Requests remaining: ", self.github.get_rate_limit().core.remaining)
 
+    def _mine_repo(self, ci, repo_name):
+        modules = [CommitsModule(), PullRequestModule(['titles'])]
+
+        self.ci_repos[repo_name] = {
+            "repo": repo_name,
+            "ci": ci
+        }
+
+        for module in modules:
+            self.ci_repos[repo_name].update(module.mine())
+
     def extract_info_for_repo(self, repo_name):
         """This method extracts information from all modules"""
         self._check_rate_limit()
@@ -96,15 +108,13 @@ class RepoInfoExtractor:
             ci = True
 
         if ci or self.include_non_ci:
-            modules = [CommitsModule(), PullRequestModule(['titles'])]
-
-            self.ci_repos[repo_name] = {
-                "repo": repo_name,
-                "ci": ci
-            }
-
-            for module in modules:
-                self.ci_repos[repo_name].update(module.mine())
+            try:
+                self._mine_repo(ci, repo_name)
+            except RateLimitExceededException:
+                if self.verbose:
+                    print("Rate limit exceeded")
+                self._check_rate_limit()
+                self._mine_repo(ci, repo_name)
 
     def _extract_yml_files(self, repo):
         contents = repo.get_contents("")
@@ -124,7 +134,7 @@ class RepoInfoExtractor:
         requests_remaining = self.github.get_rate_limit().core.remaining
         # threshold of 100 requests remaining before we sleep
         if requests_remaining < 100:
-            rt = self.g.get_rate_limit()
+            rt = self.github.get_rate_limit()
             # reset timestamp timezone does not match current timezone
             # so we calculate the difference modulo 3600 to get the seconds until the next hour reset
             sleep_for = 3600 - (abs(rt.core.reset.timestamp() - time.time()) % 3600)
@@ -150,8 +160,12 @@ if __name__ == '__main__':
         # User can press q to stop the extraction and save the current state
         if not input_queue.empty() and input_queue.get() == 'q':
             break
-
-        extractor.extract_info_for_repo(name)
+        try:
+            extractor.extract_info_for_repo(name)
+        # pylint: disable=broad-except
+        except Exception as e:
+            print(f"Error for {name}: {e}")
+            continue
     
     write_to_file(extractor, output_file, keep_existing_data=True)
 
