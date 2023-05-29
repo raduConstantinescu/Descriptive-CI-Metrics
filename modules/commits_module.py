@@ -41,7 +41,7 @@ class CommitsModule(MiningModule):
 
     def __init__(self, params=None, path=None):
         self.path = path
-        self.commits = self.repo.get_commits(path=path)
+        self.commits =  self.repo.get_commits(path=path) if path else self.repo.get_commits()
 
         self.json = {'commits': {}}
         self.params = [c.value for c in CommitParams] if params is None else params
@@ -72,8 +72,10 @@ class CommitsModule(MiningModule):
         self.json['commits']['meta'] = []
 
         for commit in self.commits:
-            files = [file for file in commit.files if file.filename == self.path] if self.path else commit.files
-            config_file = next(files, None)
+            config_file = next((
+                file for file in commit.files
+                if (file.filename == self.path if self.path else True)
+            ), None)
 
             file_meta = {
                 'status': config_file.status,
