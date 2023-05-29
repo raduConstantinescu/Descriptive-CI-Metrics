@@ -1,5 +1,6 @@
 """Module for mining pull request information"""
 import abc
+
 from github import Repository
 
 

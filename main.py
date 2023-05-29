@@ -1,12 +1,14 @@
 """This is the main (literally) file of the tool. Running this file will mine information."""
 import dataclasses
 import json
-import time
 import os
+import time
+
 from dotenv import load_dotenv
 from github import Github
-from modules.mining_module import MiningModule
+
 from modules.commits_module import CommitsModule
+from modules.mining_module import MiningModule
 from modules.pull_request_module import PullRequestModule
 
 
@@ -108,7 +110,7 @@ if __name__ == '__main__':
         extractor.extract_info_for_repo(name)
 
     with open('result.json', 'w', encoding="utf-8") as f:
-        json.dump(extractor.ci_repos, f, indent=3)
+        json.dump(extractor.ci_repos, f, indent=3, default=str)
 
     end = time.time()
 

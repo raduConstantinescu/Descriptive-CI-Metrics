@@ -1,8 +1,9 @@
 """Module for mining workflow information"""
 import dataclasses
 from enum import Enum
-from modules.mining_module import MiningModule
+
 from modules.exception import ModuleParamException
+from modules.mining_module import MiningModule
 
 
 @dataclasses.dataclass

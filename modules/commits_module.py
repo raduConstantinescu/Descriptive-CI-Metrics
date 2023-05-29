@@ -14,7 +14,7 @@ class CommitsModule(MiningModule):
     Parameters
     ----------
     params : list
-        List of parameters to mine. Possible values are: 'messages', 'count'
+        List of parameters to mine. Possible values are: 'messages', 'count', 'commit_meta', 'date'
 
     Attributes
     ----------
@@ -37,6 +37,8 @@ class CommitsModule(MiningModule):
         Extracts the number of commits from a repository
     _extract_commit_meta()
         Extracts the changes per file in commits from a repository
+    _extract_commit_date()
+        Extracts the commit date of all commits
     """
 
     def __init__(self, params=None, path=None):
@@ -59,6 +61,8 @@ class CommitsModule(MiningModule):
             self._extract_commit_count()
         elif param in (CommitParams.COMMIT_META, CommitParams.COMMIT_META.value):
             self._extract_commit_meta()
+        elif param in (CommitParams.DATE, CommitParams.DATE.value):
+            self._extract_commit_date()
         else:
             raise ModuleParamException("Module does not have param: " + str(param))
 
@@ -89,6 +93,9 @@ class CommitsModule(MiningModule):
                 'file': file_meta
             })
 
+    def _extract_commit_date(self):
+        self.json['commits']['dates'] = [commit.commit.committer.date for commit in self.commits]
+
 
 class CommitParams(Enum):
     """
@@ -97,3 +104,4 @@ class CommitParams(Enum):
     MESSAGES = 'messages'
     COUNT = 'count'
     COMMIT_META = 'commit_meta'
+    DATE = 'date'
