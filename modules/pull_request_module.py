@@ -9,7 +9,12 @@ from modules.mining_module import MiningModule
 @dataclasses.dataclass
 class PullRequestModule(MiningModule):
     """
-    This class mines commit information
+    This class mines pull request information from a repository
+
+    Parameters
+    ----------
+    params : list
+        List of parameters to mine. Possible values are: 'titles', 'bodies'
 
     Attributes
     ----------
@@ -25,9 +30,9 @@ class PullRequestModule(MiningModule):
     _extract_param_info(param)
         Calls the right function given a parameter from self.params
     _extract_pull_request_titles()
-        Extracts all pull request titles from a repository
-    _extract_commit_count()
-        Extracts all pull request bodies from a repository
+        Extracts the titles of the pull requests from a repository
+    _extract_pull_request_bodies()
+        Extracts the bodies of the pull requests from a repository
     """
 
     def __init__(self, params=None):

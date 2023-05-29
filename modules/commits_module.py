@@ -11,6 +11,11 @@ class CommitsModule(MiningModule):
     """
     This class mines commit information
 
+    Parameters
+    ----------
+    params : list
+        List of parameters to mine. Possible values are: 'messages', 'count'
+
     Attributes
     ----------
     commits : PaginatedList[Commit]

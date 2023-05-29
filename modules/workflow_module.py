@@ -10,6 +10,11 @@ class WorkflowModule(MiningModule):
     """
     This class mines commit information
 
+    Parameters
+    ----------
+    params : list
+        List of parameters to mine. Possible values are: 'count', 'name'
+
     Attributes
     ----------
     workflows : PaginatedList[Workflow]
