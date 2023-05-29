@@ -21,6 +21,7 @@ cache/
 *.xls
 *.xlsx
 *.json
+out/
 
 # Ignore package build files
 build/
