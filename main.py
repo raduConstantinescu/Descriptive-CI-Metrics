@@ -11,14 +11,15 @@ from dotenv import load_dotenv
 from github import Github
 
 from github.GithubException import RateLimitExceededException
-from modules.mining_module import MiningModule
 from modules.commits_module import CommitsModule
 from modules.mining_module import MiningModule
 from modules.pull_request_module import PullRequestModule
 
+
 def add_input(input_queue):
     while True:
         input_queue.put(sys.stdin.read(1))
+
 
 def setup():
     """Sets up external dependencies for the tool. For now, this is just environment loading."""
@@ -29,6 +30,7 @@ def setup():
     input_thread.daemon = True
     input_thread.start()
     return input_queue
+
 
 def write_to_file(extractor, filename, keep_existing_data=False):
     if keep_existing_data:
@@ -42,6 +44,7 @@ def write_to_file(extractor, filename, keep_existing_data=False):
 
     with open(output_file, 'w', encoding="utf-8") as f:
         json.dump(extractor.ci_repos, f, indent=3, default=str)
+
 
 @dataclasses.dataclass
 class RepoInfoExtractor:
