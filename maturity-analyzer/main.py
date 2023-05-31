@@ -1,8 +1,10 @@
 import os
 
 from dotenv import load_dotenv
+from github import Github
 
-from repository_extractor import RepositoryExtractor, ClusterProperties
+from repository_extractor import RepositoryExtractor
+from repository_filter import RepositoryFilter
 
 
 def setup():
@@ -10,23 +12,12 @@ def setup():
     load_dotenv()
 
 
-def main(access_token, cluster_type):
-    RepositoryExtractor(access_token, cluster_type).extract_repos()
-    # # Create instances of the classes
-    # extractor = RepositoryExtractor()
-    # filter = RepositoryFilter()
-    #
-    # # Call methods in the appropriate order
-    # extracted_data = extractor.extract()
-    # filtered_data = filter.filter(extracted_data)
-    #
-    # # Further processing or outputting the collected data
+def main(github):
+    RepositoryExtractor(github, 100).extract_repos()
+    # RepositoryFilter(access_token)
 
 
 if __name__ == "__main__":
     setup()
-    ACCESS_TOKEN = os.environ.get("GITHUB_ACCESS_TOKEN")
-    CLUSTER_TYPE = ClusterProperties.MIDDLE
-    main(ACCESS_TOKEN, CLUSTER_TYPE)
-
-
+    g = Github(os.environ.get("GITHUB_ACCESS_TOKEN"))
+    main(g)

@@ -1,80 +1,123 @@
-import datetime
+import calendar
+import json
 import time
+import datetime
 from enum import Enum
 
-import requests
+from github import RateLimitExceededException
 
-class ClusterProperties(Enum):
+
+class MaturityLevel(Enum):
     MATURE = "mature", 10, 15, 6
     MIDDLE = "middle", 5, 10, 3
     IMMATURE = "immature", 0, 5, 1
 
+
 class RepositoryExtractor:
-    def __init__(self, access_token, cluster_parameters = ClusterProperties.MATURE):
-        self.access_token = access_token
-        self.cluster_parameters = cluster_parameters.value
+    def __init__(self, github, num_repositories):
+        self.github = github
+        self.num_repositories = num_repositories
+        self.ci_dir_filter = [".circleci", ".github", ".github/workflows"]
 
     def extract_repos(self):
-        headers = {'Authorization': f'Bearer {self.access_token}'}
+        repos = {}
+        for maturity_level in MaturityLevel:
+            try:
+                print("Retriving repositories for "+ maturity_level.value[0] + " projects")
+                repo_list = self.extract_repos_per_maturity_group(maturity_level.value)
+                repos[maturity_level.value[0]] = repo_list
+                self.save_intermediate_results(repos)
+            except RateLimitExceededException as e:
+                print("Rate limit exceeded. Waiting for reset...")
+                core_rate_limit = self.github.get_rate_limit().core
+                reset_timestamp = calendar.timegm(core_rate_limit.reset.timetuple())
+                sleep_time = reset_timestamp - calendar.timegm(time.gmtime())+ 5  # add 5 seconds to be sure the rate limit has been reset
+                time.sleep(sleep_time)
+                # Retry the extraction for the current maturity level
+                repo_list = self.extract_repos_per_maturity_group(maturity_level.value)
+                repos[maturity_level.value[0]] = repo_list
+                self.save_intermediate_results(repos)
 
-        cluster_name = self.cluster_parameters[0]
-        older_than = self.cluster_parameters[1]
-        print(older_than)
-        younger_than = self.cluster_parameters[2]
-        print(younger_than)
+        print(repos)
+        return repos
 
-        older_than_years = (datetime.datetime.now() - datetime.timedelta(days=365 * older_than))\
-            .strftime("%Y-%m-%d")
-        younger_than_years = (datetime.datetime.now() - datetime.timedelta(days=365 * younger_than)) \
-            .strftime("%Y-%m-%d")
+    def extract_repos_per_maturity_group(self, maturity_level):
+        print("here")
+        age_lower_bound = maturity_level[1]
+        age_upper_bound = maturity_level[2]
 
-        print(younger_than_years)
-        print(older_than_years)
+        age_lower_bound_years = (datetime.datetime.now() -
+                                 datetime.timedelta(days=365 * age_lower_bound)).strftime("%Y-%m-%d")
+        age_upper_bound_years = (datetime.datetime.now() -
+                                 datetime.timedelta(days=365 * age_upper_bound)).strftime("%Y-%m-%d")
+        max_last_updated = datetime.datetime.now() - datetime.timedelta(days=180)
+        # Pagination variables
+        page = 0
+        repositories = []
+        per_page = 100
 
-        total_repos = 1000  # Number of repositories to retrieve
-        repos_per_page = 100  # Number of repositories per page
-        current_page = 1
-        repo_list = []
+        # Continuously extract repositories until you have at least 100 or reach the end of the search results
+        while len(repositories) < self.num_repositories :
+            try:
+                # Search for repositories using the GitHub API
+                results = self.github.search_repositories(
+                    f'created:{age_upper_bound_years}..{age_lower_bound_years}',
+                    'stars', 'desc')
 
-        while len(repo_list) < total_repos:
-            # Define the search query parameters
-            params = {
-                'q': f'created:{younger_than_years}..{older_than_years}',
-                'sort': 'updated',
-                'order': 'desc',
-                'per_page': repos_per_page,
-                'page': current_page
-            }
+                # Iterate over the search results
+                for repo in results:
+                    workflows = repo.get_workflows()
+                    yml_files = self._extract_yml_files(repo)
+                    # Check if the repository was last updated within the last 6 months
+                    if repo.pushed_at >= max_last_updated and (workflows.totalCount > 0 or yml_files):
+                        repositories.append({
+                            'name': f'{repo.owner.login}/{repo.name}',
+                            'pushed_at': repo.pushed_at.strftime("%Y-%m-%d"),
+                            'stargazers_count': repo.stargazers_count,
+                            'watchers_count': repo.watchers_count,
+                            'forks_count': repo.forks_count
+                        })
+                        if len(repositories) >= self.num_repositories :
+                            break
 
-            # Send the API request
-            response = requests.get('https://api.github.com/search/repositories', headers=headers, params=params)
+                if page >= results.totalCount or len(repositories) >= self.num_repositories :
+                    break
 
-            # Check rate limit status
-            remaining = int(response.headers.get('X-RateLimit-Remaining', 0))
-            reset_time = int(response.headers.get('X-RateLimit-Reset', 0))
-
-            if remaining == 0:
-                # Sleep until rate limit reset time
-                sleep_duration = reset_time - time.time()
-                print(f"Rate limit exceeded. Sleeping for {sleep_duration} seconds.")
-                time.sleep(sleep_duration)
+                page += 1
+            except RateLimitExceededException as e:
+                print("Rate limit exceeded. Waiting for reset...")
+                core_rate_limit = self.github.get_rate_limit().core
+                reset_timestamp = calendar.timegm(core_rate_limit.reset.timetuple())
+                sleep_time = reset_timestamp - calendar.timegm(
+                    time.gmtime()) + 5  # add 5 seconds to be sure the rate limit has been reset
+                time.sleep(sleep_time)
+                # Retry the current search
                 continue
 
-            # Parse the JSON response
-            data = response.json()
+        return repositories
 
-            # Extract owner/name of each repository
-            repo_list.extend(['{}/{}'.format(item['owner']['login'], item['name']) for item in data['items']])
+    def save_intermediate_results(self, repos):
+        try:
+            with open('intermediate_results.json', 'r') as file:
+                data = json.load(file)
+                data.update(repos)
+        except FileNotFoundError:
+            data = repos
 
-            # If the total number of repositories is already reached, break the loop
-            if len(repo_list) >= total_repos:
-                break
+        with open('intermediate_results.json', 'w') as file:
+            json.dump(data, file)
 
-            # Move to the next page
-            current_page += 1
 
-        # Write the repository list to a file
-        with open(f'raw_repository_lists/repository_list_HELLOOOOO.txt', 'w') as file:
-            file.write('\n'.join(repo_list))
-
-        return self
+    def _extract_yml_files(self, repo):
+        contents = repo.get_contents("")
+        yml_files = []
+        while contents:
+            file_content = contents.pop(0)
+            if file_content.type == "dir" and file_content.name in self.ci_dir_filter:
+                contents.extend(repo.get_contents(file_content.path))
+            else:
+                if file_content.path == ".github/workflows":
+                    contents.extend(repo.get_contents(file_content.path))
+                if file_content.path.endswith(".yml") or file_content.path.endswith(".yaml"):
+                    yml_files.append(file_content)
+        return yml_files
