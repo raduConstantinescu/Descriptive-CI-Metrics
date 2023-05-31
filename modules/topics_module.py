@@ -1,6 +1,8 @@
 """Module for mining topics from a repository."""
 import dataclasses
+
 from modules.mining_module import MiningModule
+
 
 @dataclasses.dataclass
 class TopicsModule(MiningModule):

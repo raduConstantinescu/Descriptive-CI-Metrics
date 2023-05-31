@@ -1,9 +1,11 @@
 """Module for mining readme information"""
 import dataclasses
-from enum import Enum
 import re
+from enum import Enum
+
 from modules.exception import ModuleParamException
 from modules.mining_module import MiningModule
+
 
 @dataclasses.dataclass
 class ReadMeModule(MiningModule):

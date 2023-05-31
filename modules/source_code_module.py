@@ -1,8 +1,11 @@
 """Module for mining source code from a repository"""
 import dataclasses
 import time
+
 from git import Repo
+
 from modules.mining_module import MiningModule
+
 
 @dataclasses.dataclass
 class SourceCodeModule(MiningModule):

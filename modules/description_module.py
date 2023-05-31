@@ -1,5 +1,6 @@
 """Module for mining description information"""
 import dataclasses
+
 from modules.mining_module import MiningModule
 
 

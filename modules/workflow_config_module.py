@@ -1,14 +1,14 @@
 """Module for mining workflow config files"""
 import dataclasses
-
-from enum import Enum
 import os
+from enum import Enum
 
 from github import GithubException
 
 from modules.commits_module import CommitParams, CommitsModule
-from modules.mining_module import MiningModule
 from modules.exception import ModuleParamException
+from modules.mining_module import MiningModule
+
 
 @dataclasses.dataclass
 class WorkflowConfigModule(MiningModule):
