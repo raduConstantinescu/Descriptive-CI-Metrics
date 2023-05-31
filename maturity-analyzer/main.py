@@ -2,9 +2,9 @@ import os
 
 from dotenv import load_dotenv
 from github import Github
+from popularity_analyzer import PopularityAnalyzer
 
 from repository_extractor import RepositoryExtractor
-from repository_filter import RepositoryFilter
 
 
 def setup():
@@ -13,9 +13,8 @@ def setup():
 
 
 def main(github):
-    RepositoryExtractor(github, 100).extract_repos()
-    # RepositoryFilter(access_token)
-
+    # repositories = RepositoryExtractor(github, 100).extract_repos()
+    PopularityAnalyzer(github, "all").analyze()
 
 if __name__ == "__main__":
     setup()

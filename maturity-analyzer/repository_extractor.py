@@ -38,11 +38,9 @@ class RepositoryExtractor:
                 repos[maturity_level.value[0]] = repo_list
                 self.save_intermediate_results(repos)
 
-        print(repos)
         return repos
 
     def extract_repos_per_maturity_group(self, maturity_level):
-        print("here")
         age_lower_bound = maturity_level[1]
         age_upper_bound = maturity_level[2]
 
@@ -72,7 +70,8 @@ class RepositoryExtractor:
                     if repo.pushed_at >= max_last_updated and (workflows.totalCount > 0 or yml_files):
                         repositories.append({
                             'name': f'{repo.owner.login}/{repo.name}',
-                            'pushed_at': repo.pushed_at.strftime("%Y-%m-%d"),
+                            'created_at': repo.created_at.strftime("%Y-%m-%d"),
+                            'updated_at': repo.updated_at.strftime("%Y-%m-%d"),
                             'stargazers_count': repo.stargazers_count,
                             'watchers_count': repo.watchers_count,
                             'forks_count': repo.forks_count
@@ -98,13 +97,13 @@ class RepositoryExtractor:
 
     def save_intermediate_results(self, repos):
         try:
-            with open('intermediate_results.json', 'r') as file:
+            with open('repository_lists/repositories.json', 'r') as file:
                 data = json.load(file)
                 data.update(repos)
         except FileNotFoundError:
             data = repos
 
-        with open('intermediate_results.json', 'w') as file:
+        with open('repository_lists/repositories.json', 'w') as file:
             json.dump(data, file)
 
 
