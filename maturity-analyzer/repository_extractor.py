@@ -67,7 +67,7 @@ class RepositoryExtractor:
                     workflows = repo.get_workflows()
                     yml_files = self._extract_yml_files(repo)
                     # Check if the repository was last updated within the last 6 months
-                    if repo.pushed_at >= max_last_updated and (workflows.totalCount > 0 or yml_files):
+                    if repo.updated_at >= max_last_updated and (workflows.totalCount > 0 or yml_files):
                         repositories.append({
                             'name': f'{repo.owner.login}/{repo.name}',
                             'created_at': repo.created_at.strftime("%Y-%m-%d"),
