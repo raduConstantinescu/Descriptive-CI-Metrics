@@ -1,0 +1,32 @@
+{
+  "RepoGenerator": {
+    "target_number_of_repos": 200,
+    "languages": ["java", "python"],
+    "ci_config": {
+      "keywords": [".github/workflows"]
+    },
+    "min_stars": 100,
+    "maturity_filter": true,
+    "min_days_old": 180,
+    "days_since_last_update": 180,
+    "min_commits": 100,
+    "min_contributors": 5,
+    "excluded_repos": "../output/extracted_repos.txt",
+    "output_file": "../output/extracted_repos.txt"
+  },
+
+  "MaturityLevel": {
+    "mature": {
+      "maximum_age": 15,
+      "minimum_age": 10
+    },
+    "middle": {
+      "maximum_age": 10,
+      "minimum_age": 5
+    },
+    "immature": {
+      "maximum_age": 5,
+      "minimum_age": 0
+    }
+  }
+}
