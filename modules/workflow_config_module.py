@@ -73,7 +73,7 @@ class WorkflowConfigModule(MiningModule):
                 config_file = contents.pop(0)
 
                 if self._is_yml_file(config_file.name):
-                    self.json['workflow_files'].append({ 'platform': 'github_actions', 'path': config_file.path})
+                    self.json['workflow_files'].append({ 'platform': 'github_actions', 'name': config_file.name, 'path': config_file.path})
                     self._store_config_file('github-actions', config_file)
         except GithubException:
             self.json['workflow_platforms']['github_actions'] = False
@@ -89,7 +89,7 @@ class WorkflowConfigModule(MiningModule):
 
                 if (self._is_yml_file(config_file.name) and config_file.name.startswith('.travis')):
                     travis_ci_detected = True
-                    self.json['workflow_files'].append({ 'platform': 'travis_ci', 'path': config_file.path})
+                    self.json['workflow_files'].append({ 'platform': 'travis_ci', 'name': config_file.name, 'path': config_file.path})
                     self._store_config_file('travis-ci', config_file)
 
             if not travis_ci_detected:
@@ -100,7 +100,6 @@ class WorkflowConfigModule(MiningModule):
 
     def _extract_commits(self):
         for file in self.json['workflow_files']:
-            print(file)
             commit_module = CommitsModule([CommitParams.COMMIT_META], path=file['path'])
             commits = commit_module.mine()
             file['commits'] = commits['commits']['meta']
@@ -110,7 +109,7 @@ class WorkflowConfigModule(MiningModule):
         return filename.endswith('.yml') or filename.endswith('.yaml')
 
     def _store_config_file(self, platform_name, config_file):
-        out_filename = "out/" + super().repo.name + "/" + platform_name + "/" + config_file.name
+        out_filename = "out/" + super().repo.full_name + "/" + platform_name + "/" + config_file.name
 
         os.makedirs(os.path.dirname(out_filename), exist_ok=True)
 

@@ -6,8 +6,11 @@ import os
 from dotenv import load_dotenv
 from github import Github
 from modules.mining_module import MiningModule
-from modules.commits_module import CommitsModule
-from modules.pull_request_module import PullRequestModule
+from modules.commits_module import CommitParams, CommitsModule
+from modules.pull_request_module import PullRequestModule, PullRequestParams
+from modules.repository_module import RepositoryModule, RepositoryParams
+from modules.workflow_config_module import WorkflowConfigModule, WorkflowConfigParams
+from modules.workflow_module import WorkflowModule, WorkflowParams
 
 
 def setup():
@@ -49,22 +52,20 @@ class RepoInfoExtractor:
         repo = self.github.get_repo(repo_name)
         MiningModule.repo = repo
 
-        workflows = repo.get_workflows()
-        yml_files = self._extract_yml_files(repo)
 
-        if workflows.totalCount > 0 or yml_files:
-            modules = [CommitsModule(), PullRequestModule(['titles'])]
+        self.ci_repos[repo_name] = {
+            "repo": repo_name,
+            "check_runs": [],
+            "md_file_content": []
+        }
 
-            self.ci_repos[repo_name] = {
-                "repo": repo_name,
-                "check_runs": [],
-                "md_file_content": []
-            }
+        modules = [
+            RepositoryModule(params=[RepositoryParams.CREATED_AT]),
+            WorkflowConfigModule(params=[WorkflowConfigParams.GITHUB_ACTIONS_CONFIG, WorkflowConfigParams.TRAVIS_CI_CONFIG, WorkflowConfigParams.COMMITS])
+        ]
 
-            for module in modules:
-                self.ci_repos[repo_name].update(module.mine())
-
-            self._extract_md_file_content(repo, repo_name)
+        for module in modules:
+            self.ci_repos[repo_name].update(module.mine())
 
     def _extract_yml_files(self, repo):
         contents = repo.get_contents("")
@@ -98,16 +99,20 @@ if __name__ == '__main__':
     setup()
     start = time.time()
 
+    with open('result.json', 'r') as f:
+        existing = json.load(f).keys()
+
     # Read repository names from a file
     with open('repos.txt', encoding="utf-8") as f:
-        repos = [line.strip() for line in f.readlines()]
+        repos = [line.strip() for line in f.readlines() if line not in existing]
 
     extractor = RepoInfoExtractor(os.environ.get("GITHUB_ACCESS_TOKEN"))
 
     for name in repos:
+        print(f"Extracting {name}")
         extractor.extract_info_for_repo(name)
 
-    with open('result.json', 'w', encoding="utf-8") as f:
+    with open('result-ddd.json', 'w', encoding="utf-8") as f:
         json.dump(extractor.ci_repos, f, indent=3)
 
     end = time.time()
