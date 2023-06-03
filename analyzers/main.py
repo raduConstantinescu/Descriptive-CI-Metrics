@@ -6,6 +6,9 @@ import time
 from dotenv import load_dotenv
 from github import Github
 
+from analyzers.pipeline.ci_plotter import CIPlotter
+from analyzers.pipeline.data_analyzer import CIAnalyzer
+from analyzers.pipeline.data_cleaner import DataCleaner
 from analyzers.pipeline.job_extractor import JobExtractor
 from analyzers.pipeline.repo_generator import RepoGenerator, RepoGeneratorConfig
 from analyzers.pipeline.repo_metrics_extractor import RepoMetricsExtractor
@@ -18,6 +21,7 @@ def main():
     parser.add_argument('-s', '--stats', action='store_true', help='print stats about the pipeline stage')
     parser.add_argument('-stage', '--stage', type=int, help='run a specific stage in the pipeline')
     parser.add_argument('-start', '--start', type=int, help='start from a specific repo')
+    parser.add_argument('-analyze', '--analyze', action='store_true', help='analyze the data')
     args = parser.parse_args()
 
     g, config_data = setup()
@@ -28,10 +32,22 @@ def main():
         JobExtractor(g, args)
     ]
 
+    data_cleaning_pipeline = [
+        DataCleaner(args)
+    ]
+
+    analyzer_pipeline = [
+        CIAnalyzer(args),
+        CIPlotter()
+    ]
+
+    if args.analyze:
+        pipeline = []
+
     if args.stage:
         pipeline = [pipeline[args.stage]]
 
-    for stage in pipeline:
+    for stage in analyzer_pipeline:
         if args.verbose:
             print(f"Running {stage.__class__.__name__} stage...")
         start_time = time.time()
