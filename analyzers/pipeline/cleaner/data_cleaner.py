@@ -3,7 +3,7 @@ import json
 from analyzers.pipeline.stage import PipelineStage
 
 
-class DataCleaner(PipelineStage):
+class CIFilter(PipelineStage):
     def __init__(self, args):
         self.verbose = args.verbose
 

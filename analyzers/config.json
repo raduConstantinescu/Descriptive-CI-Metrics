@@ -1,0 +1,30 @@
+{
+  "RepoGenerator": {
+    "languages": ["javascript", "java", "typescript", "python"],
+    "min_stars": 100,
+    "min_days_old": 180,
+    "output_file": "../repos.txt",
+    "exclude_repos_file": "../repos.txt"
+  },
+  "RepoGACIFilter": {
+    "input_file": "../repos.txt",
+    "output_file": "../filtered_repos.txt",
+    "ci_keywords": ["CI", "Continuous Integration", "Build", "Test", "Pipeline", "Deploy", "Release", "PR"]
+  },
+  "RepoLevelMetrics" : {
+    "repos_file": "../repos.txt",
+    "output_dir": "output"
+  },
+  "RepoWorkflowBuildFilter" : {
+    "input_file": "output/repo_metrics.json",
+    "output_file": "output/filtered_workflows.json",
+    "keywords": ["build", "test", "CI"],
+    "max_workflows": 5,
+    "min_runs": 500
+  },
+  "WorkflowRunFetcher" : {
+    "input_file": "output/filtered_workflows.json",
+    "output_file": "output/filtered_workflows_with_runs_and_jobs.json",
+    "max_runs": 1
+  }
+}

@@ -6,13 +6,15 @@ import time
 from dotenv import load_dotenv
 from github import Github
 
-from analyzers.pipeline.ci_plotter import CIPlotter
-from analyzers.pipeline.data_analyzer import CIAnalyzer
-from analyzers.pipeline.data_cleaner import DataCleaner
-from analyzers.pipeline.job_extractor import JobExtractor
+from analyzers.pipeline.analyzer.build_job_analyzer import BuildJobAnalyzer
+from analyzers.pipeline.analyzer.ci_plotter import CIPlotter
+from analyzers.pipeline.analyzer.data_analyzer import CIAnalyzer
+from analyzers.pipeline.cleaner.build_filter import BuildFilter
+from analyzers.pipeline.cleaner.data_cleaner import CIFilter
+from analyzers.pipeline.extractor.job_extractor import JobExtractor
 from analyzers.pipeline.repo_generator import RepoGenerator, RepoGeneratorConfig
-from analyzers.pipeline.repo_metrics_extractor import RepoMetricsExtractor
-from analyzers.pipeline.repo_workflow_runs_extractor import WorkflowRunExtractor
+from analyzers.pipeline.extractor.repo_metrics_extractor import RepoMetricsExtractor
+from analyzers.pipeline.extractor.repo_workflow_runs_extractor import WorkflowRunExtractor
 
 
 def main():
@@ -33,12 +35,14 @@ def main():
     ]
 
     data_cleaning_pipeline = [
-        DataCleaner(args)
+        CIFilter(args),
+        BuildFilter(args)
     ]
 
     analyzer_pipeline = [
-        CIAnalyzer(args),
-        CIPlotter()
+        BuildJobAnalyzer(args)
+        # CIAnalyzer(args),
+        # CIPlotter(),
     ]
 
     if args.analyze:

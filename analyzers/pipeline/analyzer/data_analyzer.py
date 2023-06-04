@@ -145,7 +145,6 @@ class CIAnalyzer(PipelineStage):
 
 
     def _load_data(self):
-        with open('./new_output/filtered_data.json') as json_file:
+        with open('./new_output/filtered_build_data.json') as json_file:
             data = json.load(json_file)
         return data
-

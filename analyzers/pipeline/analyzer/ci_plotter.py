@@ -18,6 +18,8 @@ class CIPlotter(PipelineStage):
 
         # Extract repo-workflow names, success rates and average execution times
         repo_workflows = list(data.keys())
+        repo_workflows = [repo.replace('\u2705', '') for repo in repo_workflows]
+
         success_rates = [value['success_rate'] for value in data.values()]
         avg_execution_times = [value['average_execution_time'] for value in data.values()]
 
