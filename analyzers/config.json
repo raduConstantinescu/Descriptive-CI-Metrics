@@ -6,25 +6,30 @@
     "output_file": "../repos.txt",
     "exclude_repos_file": "../repos.txt"
   },
-  "RepoGACIFilter": {
-    "input_file": "../repos.txt",
-    "output_file": "../filtered_repos.txt",
-    "ci_keywords": ["CI", "Continuous Integration", "Build", "Test", "Pipeline", "Deploy", "Release", "PR"]
-  },
-  "RepoLevelMetrics" : {
-    "repos_file": "../repos.txt",
-    "output_dir": "output"
-  },
-  "RepoWorkflowBuildFilter" : {
-    "input_file": "output/repo_metrics.json",
-    "output_file": "output/filtered_workflows.json",
+  "RepoWorkflowBuildFilter": {
+    "input_file": "./new_output/intermediate_results1.json",
+    "output_file": "./new_output/clean_rep_data1.json",
     "keywords": ["build", "test", "CI"],
     "max_workflows": 5,
     "min_runs": 500
   },
-  "WorkflowRunFetcher" : {
-    "input_file": "output/filtered_workflows.json",
-    "output_file": "output/filtered_workflows_with_runs_and_jobs.json",
-    "max_runs": 1
+  "JsonMergeStage": {
+    "input_files": ["./new_output/clean_rep_data.json" , "./new_output/clean_rep_data1.json", "./new_output/clean_rep_data2.json"],
+    "output_file": "./new_output/all_repo_data.json"
+ },
+  "CIAnalyzer" : {
+    "input_file": "./new_output/all_repo_data.json",
+    "output_file": "./new_output/ci_data.json",
+    "stats_file": "./new_output/ci_stats.json"
+  },
+  "CIPlotter": {
+    "input_file": "./new_output/ci_data.json",
+    "data_input_file": "./new_output/ci_stats.json",
+    "output_dir": "./new_output/plots/"
+  },
+  "CIQuadrantPlotter" : {
+    "input_file": "./new_output/ci_data.json",
+    "data_input_file": "./new_output/ci_stats.json",
+    "output_dir": "./new_output/plots/"
   }
 }

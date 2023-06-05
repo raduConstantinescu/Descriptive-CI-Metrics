@@ -6,11 +6,13 @@ import time
 from dotenv import load_dotenv
 from github import Github
 
-from analyzers.pipeline.analyzer.build_job_analyzer import BuildJobAnalyzer
-from analyzers.pipeline.analyzer.ci_plotter import CIPlotter
-from analyzers.pipeline.analyzer.data_analyzer import CIAnalyzer
+from analyzers.pipeline.analyzer.ci_plotter import CIPlotter, CIPlotterConfig
+from analyzers.pipeline.analyzer.ci_analyzer import CIAnalyzer, CIAnalyzerConfig
+from analyzers.pipeline.analyzer.ci_quadran_plotter import CIQuadrantPlotter, CIQuadrantPlotterConfig
 from analyzers.pipeline.cleaner.build_filter import BuildFilter
 from analyzers.pipeline.cleaner.data_cleaner import CIFilter
+from analyzers.pipeline.cleaner.json_merge import JsonMergeStage, JsonMergeConfig
+from analyzers.pipeline.cleaner.repo_filter import RepoWorkflowBuildFilter, RepoWorkflowBuildFilterConfig
 from analyzers.pipeline.extractor.job_extractor import JobExtractor
 from analyzers.pipeline.repo_generator import RepoGenerator, RepoGeneratorConfig
 from analyzers.pipeline.extractor.repo_metrics_extractor import RepoMetricsExtractor
@@ -25,6 +27,7 @@ def main():
     parser.add_argument('-start', '--start', type=int, help='start from a specific repo')
     parser.add_argument('-analyze', '--analyze', action='store_true', help='analyze the data')
     args = parser.parse_args()
+    args.verbose = True
 
     g, config_data = setup()
     pipeline = [
@@ -35,14 +38,14 @@ def main():
     ]
 
     data_cleaning_pipeline = [
-        CIFilter(args),
-        BuildFilter(args)
+        # RepoWorkflowBuildFilter(args, RepoWorkflowBuildFilterConfig(config_data["RepoWorkflowBuildFilter"])),
+        JsonMergeStage(args, JsonMergeConfig(config_data["JsonMergeStage"])),
     ]
 
     analyzer_pipeline = [
-        BuildJobAnalyzer(args)
-        # CIAnalyzer(args),
-        # CIPlotter(),
+        # CIAnalyzer(args, CIAnalyzerConfig(config_data["CIAnalyzer"])),
+        # CIPlotter(args, CIPlotterConfig(config_data["CIPlotter"])),
+        CIQuadrantPlotter(args, CIQuadrantPlotterConfig(config_data["CIQuadrantPlotter"]))
     ]
 
     if args.analyze:
