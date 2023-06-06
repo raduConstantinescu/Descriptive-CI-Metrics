@@ -31,5 +31,10 @@
     "input_file": "./new_output/ci_data.json",
     "data_input_file": "./new_output/ci_stats.json",
     "output_dir": "./new_output/plots/"
+  },
+  "RepoMetricsClassifier": {
+    "input_file": "./new_output/all_repo_data.json",
+    "ci_data": "./new_output/ci_data.json",
+    "ci_stats": "./new_output/ci_stats.json"
   }
 }

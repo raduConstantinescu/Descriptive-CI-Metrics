@@ -9,6 +9,7 @@ from github import Github
 from analyzers.pipeline.analyzer.ci_plotter import CIPlotter, CIPlotterConfig
 from analyzers.pipeline.analyzer.ci_analyzer import CIAnalyzer, CIAnalyzerConfig
 from analyzers.pipeline.analyzer.ci_quadran_plotter import CIQuadrantPlotter, CIQuadrantPlotterConfig
+from analyzers.pipeline.analyzer.repo_metrics_classifier import RepoMetricsClassifier, RepoMetricsClassifierConfig
 from analyzers.pipeline.cleaner.build_filter import BuildFilter
 from analyzers.pipeline.cleaner.data_cleaner import CIFilter
 from analyzers.pipeline.cleaner.json_merge import JsonMergeStage, JsonMergeConfig
@@ -45,7 +46,8 @@ def main():
     analyzer_pipeline = [
         # CIAnalyzer(args, CIAnalyzerConfig(config_data["CIAnalyzer"])),
         # CIPlotter(args, CIPlotterConfig(config_data["CIPlotter"])),
-        CIQuadrantPlotter(args, CIQuadrantPlotterConfig(config_data["CIQuadrantPlotter"]))
+        # CIQuadrantPlotter(args, CIQuadrantPlotterConfig(config_data["CIQuadrantPlotter"]))
+        RepoMetricsClassifier(args, RepoMetricsClassifierConfig(config_data["RepoMetricsClassifier"]))
     ]
 
     if args.analyze:
