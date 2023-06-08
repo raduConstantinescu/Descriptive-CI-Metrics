@@ -13,8 +13,8 @@ def setup():
 
 
 def main(github):
-    # repositories = RepositoryExtractor(github, 100).extract_repos()
-    PopularityAnalyzer(github, "all").analyze()
+    repositories = RepositoryExtractor(github, 5000).extract()
+    # PopularityAnalyzer(github, "all").analyze()
 
 if __name__ == "__main__":
     setup()
