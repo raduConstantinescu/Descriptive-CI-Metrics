@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from github import Github
 
 from repository_extractor import RepositoryExtractor
+from repository_filter import RepositoryFilter
 
 
 def setup():
@@ -12,7 +13,8 @@ def setup():
 
 
 def main(github):
-    repositories = RepositoryExtractor(github, 5000).extract()
+    # repositories = RepositoryExtractor(github, 5000).extract()
+    RepositoryFilter(github).filter()
 
 if __name__ == "__main__":
     setup()

@@ -26,7 +26,7 @@ class RepositoryExtractor:
             reset_timestamp = calendar.timegm(core_rate_limit.reset.timetuple())
             sleep_time = reset_timestamp - calendar.timegm(time.gmtime())+ 5  # add 5 seconds to be sure the rate limit has been reset
             time.sleep(sleep_time)
-            # Retry the extraction for the current maturity level
+
             repo_list = self.extract_repos()
             repos.extend(repo_list)
             self.save_intermediate_results(repos)
