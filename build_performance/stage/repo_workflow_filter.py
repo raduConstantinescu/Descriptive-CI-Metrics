@@ -20,7 +20,7 @@ class RepoWorkflowFiltering(PipelineStage):
     def __init__(self, github, args, config):
         self.verbose = args.verbose
         self.github = github
-        self.config = RepoFilteringConfig(config)
+        self.config = RepoWorkflowFiltering(config)
 
     def run(self):
         self.log_info(f"Loading repositories from file: {self.config.input_file}")

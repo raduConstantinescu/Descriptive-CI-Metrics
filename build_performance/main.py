@@ -4,6 +4,7 @@ import time
 
 # todo: not best practice but works for now
 from build_performance.stage import *
+from build_performance.stage.repo_metrics_extractor import RepoMetricsExtractor
 from build_performance.stage.repo_workflow_filter import RepoWorkflowFiltering
 from utils import load_json_data
 
@@ -21,7 +22,8 @@ def main():
 
     pipeline = [
         # RepoGenerator(github, args, config["RepoGenerator"])
-        RepoWorkflowFiltering(github, args, config["RepoWorkflowFiltering"]),
+        # RepoWorkflowFiltering(github, args, config["RepoWorkflowFiltering"]),
+        RepoMetricsExtractor(github, args, config["RepoMetricsExtractor"])
     ]
 
     for stage in pipeline:
@@ -29,18 +31,22 @@ def main():
             print(f"Running {stage.__class__.__name__} stage...")
         start_time = time.time()
         start_remaining = github.get_rate_limit().core.remaining
-        stage.run()
+        try:
+            stage.run()
+        except Exception as e:
+            print(f"Error running stage {stage.__class__.__name__}: {str(e)}")
+            continue
         end_time = time.time()
         end_remaining = github.get_rate_limit().core.remaining
         execution_time = end_time - start_time
         used_requests = start_remaining - end_remaining
         if args.verbose:
-            print(f"Stage {stage.__class__.__name__} executed in {execution_time} using {used_requests}.")
+            print(
+                f"Stage {stage.__class__.__name__} executed in {execution_time} seconds using {used_requests} requests.")
             print(f"Remaining requests: {end_remaining}")
-            print(f"Rate limit resets in {github.get_rate_limit().core.reset}")
+            print(f"Rate limit resets at: {github.get_rate_limit().core.reset}")
 
     print("Done!")
-
 
 
 def setup():
