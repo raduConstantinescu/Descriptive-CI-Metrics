@@ -24,38 +24,48 @@ class CIQuadrantPlotter(PipelineStage):
         data = {k: v for k, v in data.items() if k not in self.exclude_workflows}
 
         # Extract success rates and average execution times
-        success_rates = [value['success_rate'] for value in data.values()]
-        avg_execution_times = [value['average_execution_time'] / 60 for value in data.values()]  # convert to minutes
+        breakages_rates = [value['breakages_rate'] for value in data.values()]
+        median_execution_times = [value['median_execution_time'] / 60 for value in data.values()]  # convert to minutes
 
         # Create a new directory if it doesn't exist
         if not os.path.exists(self.config.output_dir):
             os.makedirs(self.config.output_dir)
 
         # Create the plot
-        fig, ax = plt.subplots(figsize=(10,10))
+        fig, ax = plt.subplots(figsize=(10, 10))
 
         # Quadrant conditions
         conditions = [
-            (np.array(success_rates) >= overall_stats['median_success_rate']) & (np.array(avg_execution_times) >= overall_stats['median_execution_time'] / 60),
-            (np.array(success_rates) < overall_stats['median_success_rate']) & (np.array(avg_execution_times) >= overall_stats['median_execution_time'] / 60),
-            (np.array(success_rates) >= overall_stats['median_success_rate']) & (np.array(avg_execution_times) < overall_stats['median_execution_time'] / 60),
-            (np.array(success_rates) < overall_stats['median_success_rate']) & (np.array(avg_execution_times) < overall_stats['median_execution_time'] / 60)
+            (np.array(breakages_rates) >= overall_stats['median_breakages_rate']) & (
+                        np.array(median_execution_times) >= overall_stats['median_execution_time'] / 60),
+            (np.array(breakages_rates) < overall_stats['median_breakages_rate']) & (
+                        np.array(median_execution_times) >= overall_stats['median_execution_time'] / 60),
+            (np.array(breakages_rates) >= overall_stats['median_breakages_rate']) & (
+                        np.array(median_execution_times) < overall_stats['median_execution_time'] / 60),
+            (np.array(breakages_rates) < overall_stats['median_breakages_rate']) & (
+                        np.array(median_execution_times) < overall_stats['median_execution_time'] / 60)
         ]
 
         # Quadrant colors
         colors = ['red', 'green', 'blue', 'pink']
 
         for condition, color in zip(conditions, colors):
-            ax.scatter(np.array(success_rates)[condition], np.array(avg_execution_times)[condition], color=color, s=10)
+            ax.scatter(np.array(breakages_rates)[condition], np.array(median_execution_times)[condition], color=color,
+                       s=10)
 
         # Draw median lines
-        ax.axvline(x=overall_stats['median_success_rate'], color='red', linestyle='--', label=f'Median Success Rate: {overall_stats["median_success_rate"]:.2f}')
-        ax.axhline(y=overall_stats['median_execution_time'] / 60, color='blue', linestyle='--', label=f'Median Execution Time: {overall_stats["median_execution_time"]/60:.2f} min')  # convert to minutes
+        ax.axvline(x=overall_stats['median_breakages_rate'], color='red', linestyle='--',
+                   label=f'Median Breakage Rate: {overall_stats["median_breakages_rate"]:.2f}')
+        ax.axhline(y=overall_stats['median_execution_time'] / 60, color='blue', linestyle='--',
+                   label=f'Median Execution Time: {overall_stats["median_execution_time"] / 60:.2f} min')  # convert to minutes
 
-        # Set labels and reverse x-axis
-        ax.set_xlabel('Success Rate')
+        # Set labels
+        ax.set_xlabel('Breakage Rate')
         ax.set_ylabel('Average Execution Time (min)')
-        ax.set_xlim(1, 0)  # reverse x-axis
+
+        # Set axis limits based on your data
+        ax.set_xlim([0, max(breakages_rates)])
+        ax.set_ylim([0, max(median_execution_times)])
 
         # Calculate and display percentages and counts in the note
         counts = [np.count_nonzero(condition) for condition in conditions]
@@ -63,7 +73,7 @@ class CIQuadrantPlotter(PipelineStage):
         percentages = [count / total_count * 100 for count in counts]
         note = f'Quadrant Percentages:\n'
         for i, percent in enumerate(percentages):
-            note += f'Quadrant {i+1}: {percent:.2f}% ({counts[i]} workflows)\n'
+            note += f'Quadrant {i + 1}: {percent:.2f}% ({counts[i]} workflows)\n'
 
         # Add the note to the plot
         ax.text(0.02, 0.98, note, verticalalignment='top', horizontalalignment='left', transform=ax.transAxes,
@@ -82,6 +92,8 @@ class CIQuadrantPlotter(PipelineStage):
 
         # Save the plot
         plt.savefig(os.path.join(self.config.output_dir, 'quadrant_plot.png'))
+
+
 
 
 

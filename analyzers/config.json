@@ -36,5 +36,14 @@
     "input_file": "./new_output/all_repo_data.json",
     "ci_data": "./new_output/ci_data.json",
     "ci_stats": "./new_output/ci_stats.json"
+  },
+  "WorkflowDownloader" : {
+    "input_file": "./new_output/all_repo_data.json",
+    "output_dir": "./new_output/workflows"
+  },
+  "WorkflowScore" : {
+    "input_file": "./new_output/all_repo_data.json",
+    "workflow_dir" : "./new_output/workflows",
+    "output_file": "./new_output/workflow_scores.json"
   }
 }
