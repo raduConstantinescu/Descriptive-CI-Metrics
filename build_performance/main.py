@@ -2,7 +2,9 @@ import os
 import argparse
 import time
 
-from build_performance.stage.repo_generator import RepoGenerator
+# todo: not best practice but works for now
+from build_performance.stage import *
+from build_performance.stage.repo_workflow_filter import RepoWorkflowFiltering
 from utils import load_json_data
 
 from dotenv import load_dotenv
@@ -18,7 +20,8 @@ def main():
 
 
     pipeline = [
-        RepoGenerator(github, args, config["RepoGenerator"])
+        # RepoGenerator(github, args, config["RepoGenerator"])
+        RepoWorkflowFiltering(github, args, config["RepoWorkflowFiltering"]),
     ]
 
     for stage in pipeline:

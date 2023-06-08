@@ -1,3 +1,10 @@
+# This stage generates repositories based on the following criteria:
+# 1. The repository must have at least min_stars stars.
+# 2. The repository must be at least min_days_old days old.
+# 3. The repository must contain one of the languages specified in the config.
+# 4. For each language, the script must extract repo_number repositories.
+# 5. The repositories must not be in the exclude_repos_file (used to exclude repositories that have already been processed).
+
 import time
 from datetime import datetime, timedelta
 
