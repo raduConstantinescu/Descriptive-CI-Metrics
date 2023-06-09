@@ -10,17 +10,16 @@ from github import RateLimitExceededException
 from build_performance.utils import load_lines_from_file, output_json_data
 from build_performance.stage.stage import PipelineStage
 
-class RepoWorkflowFiltering:
+class RepoWorkflowFilteringConfig:
     def __init__(self, config):
         self.input_file = config["input_file"]
-        self.ci_dir_filter = config["ci_dir_filter"]
         self.output_file = config["output_file"]
 
 class RepoWorkflowFiltering(PipelineStage):
     def __init__(self, github, args, config):
         self.verbose = args.verbose
         self.github = github
-        self.config = RepoWorkflowFiltering(config)
+        self.config = RepoWorkflowFilteringConfig(config)
 
     def run(self):
         self.log_info(f"Loading repositories from file: {self.config.input_file}")
@@ -63,10 +62,12 @@ class RepoWorkflowFiltering(PipelineStage):
 
         workflows = []
         for workflow in repo.get_workflows():
-            if workflow.get_runs().totalCount >= 500:
+            workflowRunsCount = workflow.get_runs().totalCount
+            if workflowRunsCount >= 500:
                 workflows.append({
                     "name": workflow.name,
-                    "id": workflow.id
+                    "id": workflow.id,
+                    "runs" : workflowRunsCount
                 })
 
         if workflows:

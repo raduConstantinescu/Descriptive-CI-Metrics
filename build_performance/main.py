@@ -4,7 +4,9 @@ import time
 
 # todo: not best practice but works for now
 from build_performance.stage import *
+from build_performance.stage.repo_generator import RepoGenerator
 from build_performance.stage.repo_metrics_extractor import RepoMetricsExtractor
+from build_performance.stage.repo_workflow_classifier import RepoWorkflowClassifier
 from build_performance.stage.repo_workflow_filter import RepoWorkflowFiltering
 from utils import load_json_data
 
@@ -15,15 +17,18 @@ from github import Github
 def main():
     parser = argparse.ArgumentParser(description='CI Build Performance Analyzer.')
     parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output.')
+    parser.add_argument('-d', '--download', action='store_true', help='Download workflow files.')
     args = parser.parse_args()
     args.verbose = True
+    args.download = False
     github, config = setup()
 
 
     pipeline = [
-        # RepoGenerator(github, args, config["RepoGenerator"])
+        # RepoGenerator(github, args, config["RepoGenerator"]),
         # RepoWorkflowFiltering(github, args, config["RepoWorkflowFiltering"]),
-        RepoMetricsExtractor(github, args, config["RepoMetricsExtractor"])
+        # RepoMetricsExtractor(github, args, config["RepoMetricsExtractor"]),
+        RepoWorkflowClassifier(github, args, config["RepoWorkflowClassifier"]),
     ]
 
     for stage in pipeline:
@@ -31,11 +36,7 @@ def main():
             print(f"Running {stage.__class__.__name__} stage...")
         start_time = time.time()
         start_remaining = github.get_rate_limit().core.remaining
-        try:
-            stage.run()
-        except Exception as e:
-            print(f"Error running stage {stage.__class__.__name__}: {str(e)}")
-            continue
+        stage.run()
         end_time = time.time()
         end_remaining = github.get_rate_limit().core.remaining
         execution_time = end_time - start_time
@@ -51,7 +52,7 @@ def main():
 
 def setup():
     load_dotenv()
-    g = Github(os.getenv('GITHUB_ACCESS_TOKEN'))
+    g = Github(os.getenv('GITHUB_ACCESS_TOKEN1'))
     config_data = load_json_data('config.json')
     return g, config_data
 

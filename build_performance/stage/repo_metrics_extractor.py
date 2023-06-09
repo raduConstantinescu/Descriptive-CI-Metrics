@@ -54,6 +54,9 @@ class RepoMetricsExtractor(PipelineStage):
 
         print("Finished writing repository metrics.")
 
+        # todo: add a option to not have to run whole stage
+        # self.show_statistics(self.processed_data)
+
     def extract_repo_metrics(self, repo):
         while True:
             try:
@@ -85,4 +88,3 @@ class RepoMetricsExtractor(PipelineStage):
                 continue
             except Exception as e:
                 print(f"Error extracting metrics for {repo['repoName']}: {e}")
-
