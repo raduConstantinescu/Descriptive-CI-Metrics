@@ -85,7 +85,7 @@ class RepositoryExtractor:
 
     def save_intermediate_results(self, repos):
         try:
-            with open('raw_repository_lists_sorted_by_last_updated/repositories.json', 'r+') as file:
+            with open('output/repos.txt', 'r+') as file:
                 try:
                     data = json.load(file)
                 except json.decoder.JSONDecodeError:
@@ -99,7 +99,7 @@ class RepositoryExtractor:
                 json.dump(data, file, indent=4)
                 file.truncate()
         except FileNotFoundError:
-            with open('raw_repository_lists_sorted_by_last_updated/repositories.json', 'w') as file:
+            with open('output/repos.txt', 'w') as file:
                 json.dump(repos, file, indent= 4)
 
 

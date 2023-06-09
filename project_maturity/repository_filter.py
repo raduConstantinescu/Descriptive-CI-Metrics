@@ -1,8 +1,6 @@
 import calendar
-import json
 import time
 import datetime
-from enum import Enum
 
 from github import RateLimitExceededException
 
@@ -102,18 +100,18 @@ class RepositoryFilter:
 
         # Recursively count the number of files in the repository
         contents = repo.get_contents("")  # Get the root directory contents
-        while contents and file_count < 100:
+        while contents and file_count < 200:
             file_content = contents.pop(0)
             if file_content.type == "file":
                 file_count += 1
-                if file_count >= 100:
+                if file_count >= 200:
                     break
             elif file_content.type == "dir":
                 dir_contents = repo.get_contents(file_content.path)
                 contents.extend(dir_contents)
 
         print("Number of files:", file_count)
-        if file_count >= 100:
+        if file_count >= 200:
             return True
         else:
             return False
