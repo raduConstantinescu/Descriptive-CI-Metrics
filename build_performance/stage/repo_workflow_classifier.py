@@ -1,11 +1,18 @@
 # The aim of this stage is to rank workflows based on their likelihood of being a build and test workflow.
 # Limitation is that commands can be wrapped in scripts or custom build / steps command can be used.
+
+# Starting with 283 repos
+# Removed 1213 workflows
+# Remaining 68 repos with 106 workflows
+
+
 import yaml
 import glob
 import json
 
+from build_performance.stage.scorer import analyze_workflow_scores
 from build_performance.stage.stage import PipelineStage
-from build_performance.utils import load_json_data
+from build_performance.utils import load_json_data, output_json_data
 import os
 
 
@@ -30,10 +37,10 @@ class RepoWorkflowClassifier(PipelineStage):
             self.download_workflows(data)
         if self.verbose:
             self.show_statistics(data)
-        self.score_workflows()
-        print("Scoring statistics:")
-        for score_type, count in self.scores.items():
-            print(f"{score_type}: {count}")
+        results , results_filtered = self.score_workflows(self.config.workflow_dir)
+        self.conclude_repo_data(data, results_filtered)
+
+
 
     def show_statistics(self, data):
         repos_by_language = {}
@@ -81,87 +88,53 @@ class RepoWorkflowClassifier(PipelineStage):
 
         print("Workflows downloaded.")
 
-    def score_workflows(self):
-        # Mapping from workflow names to scores
-        name_scores = {"node js ci": 5, "java ci": 5}  # Add other names with scores here
+    def score_workflows(self, workflow_dir):
+        return analyze_workflow_scores(workflow_dir)
 
-        # Mapping from job names to scores
-        job_scores = {"build": 15}  # Add other job names with scores here
+    def conclude_repo_data(self, data, workflows):
+        print(f"Starting with {len(data)} repos")
+        count = 0
+        repos_to_remove = []
 
-        # Mapping from step names to scores
-        step_scores = {"Build with Gradle": 15, "Build with Maven": 15}  # Add other steps names with scores here
+        for repo in data:
+            repo_name = repo["repoName"]
+            repo_name_to_file_name = repo_name.replace('/', '_')
+            if repo_name_to_file_name in workflows:
+                workflows_in_repo = []
+                for workflow_of_data in repo['workflow'][:]:
+                    workflow_score = next((item for item in workflows[repo_name_to_file_name] if
+                                           item["workflow_name"] == workflow_of_data["name"]), None)
+                    if workflow_score is None:
+                        count += 1
+                        print(f"Removing {workflow_of_data} from {repo_name}")
+                        repo['workflow'].remove(workflow_of_data)
+                    else:
+                        workflows_in_repo.append((workflow_of_data, workflow_score['score']))
+                # Only keep up to 4 workflows with highest scores
+                workflows_in_repo.sort(key=lambda x: x[1], reverse=True)
+                repo['workflow'] = [item[0] for item in workflows_in_repo[:4]]
+                if len(repo['workflow']) == 0:
+                    repos_to_remove.append(repo)
+            else:
+                repos_to_remove.append(repo)
 
-        # Mapping from run commands to scores
-        run_scores = {}
 
-        # Integrate the given keywords into run_scores
-        build_keywords = {
-            "JavaScript": ["npm install", "npm ci", "npm build", "npm test", "npm run",
-                           "yarn install", "yarn build", "yarn test", "yarn run"],
-            "TypeScript": ["tsc", "ts-node", "npm install", "npm ci", "npm build",
-                           "npm test", "npm run", "yarn install", "yarn build",
-                           "yarn test", "yarn run"],
-            "Java": ["mvn install", "mvn clean install", "mvn test",
-                     "mvn clean test", "mvn package", "mvn clean package",
-                     "mvn compile", "gradle build", "gradle test", "gradle install",
-                     "gradle clean", "gradle check", "ant compile", "ant test",
-                     "ant build", "ant install"]
-        }
-        for score, commands in zip([50, 100, 200], build_keywords.values()):
-            for command in commands:
-                run_scores[command] = score
 
-        scores = {}
+        for repo in repos_to_remove:
+            data.remove(repo)
+            count += len(repo['workflow'])
 
-        # Walk the directory containing all the workflows
-        for filename in glob.glob(os.path.join(self.config.workflow_dir, '**/*.yml'), recursive=True):
-            with open(filename, 'r') as file:
-                try:
-                    # Parse the workflow YAML
-                    workflow = yaml.safe_load(file)
-                except yaml.YAMLError as e:
-                    print(f"Could not parse {filename}: {e}")
-                    continue
+        remaining_workflows = 0
+        for repo in data:
+            remaining_workflows += len(repo['workflow'])
 
-                # Initialize score for this workflow
-                score = 0
+        print(f"Removed {count} workflows")
+        print(f"Remaining {len(data)} repos with {remaining_workflows} workflows")
+        output_json_data(self.config.output_file, data)
 
-                # Score name
-                name = workflow.get('name', '')
-                score += name_scores.get(name.lower(), 0)
 
-                # Score jobs
-                for job in workflow.get('jobs', {}).values():
-                    # Score job name
-                    job_name = job.get('name', '')
-                    score += job_scores.get(job_name.lower(), 0)
 
-                    # Score steps
-                    for step in job.get('steps', []):
-                        # Score step name
-                        step_name = step.get('name', '')
-                        score += step_scores.get(step_name.lower(), 0)
 
-                        # Score run command
-                        run_command = step.get('run', '')
-                        if isinstance(run_command, str):
-                            for command, command_score in run_scores.items():
-                                if command in run_command.lower():
-                                    score += command_score
-
-                # Add the score to the scores dictionary
-                repo_name = filename.split(os.sep)[-2].replace('_', '/')
-                workflow_name = filename.split(os.sep)[-1]
-                if repo_name not in scores:
-                    scores[repo_name] = {}
-                scores[repo_name][workflow_name] = score
-
-        # Save scores to JSON
-        with open(self.config.output_file, 'w') as f:
-            json.dump(scores, f, indent=4)
-
-        # Save scores
-        self.scores = scores
 
 
 

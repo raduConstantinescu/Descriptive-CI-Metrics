@@ -7,6 +7,88 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 
+# Call this function in the repo_workflow_classifier.py file
+def analyze_workflow_scores(workflow_directory):
+    results = {}
+    scores = []
+    score_counts = {}
+
+    for filename in glob.glob(os.path.join(workflow_directory, '**/*.yml'), recursive=True):
+        print(filename)
+        repo_name = filename.split("/")[-2]
+        score_counts[repo_name] = 0
+        data = parse_yaml(filename)
+
+        if data is not None:
+            score = get_workflow_score(data, repo_name, score_counts)
+            if score > 0:
+                scores.append(score)
+
+            if repo_name not in results:
+                results[repo_name] = []
+
+            results[repo_name].append({
+                'workflow_name': data['name'] if 'name' in data else "Unnamed",
+                'score': score
+            })
+
+            print(f'Score for {filename}: {score}')
+        else:
+            print(f'Skipping score calculation for {filename}')
+
+        print('------------------')
+
+    # Normalize scores
+    for repo_name, repo_data in results.items():
+        for item in repo_data:
+            if score_counts[repo_name] > 0:
+                item['score'] /= score_counts[repo_name]
+            else:
+                item['score'] = 0
+
+    # Save results to JSON
+    with open('../build_performance/output/workflow_scores.json', 'w') as f:
+        json.dump(results, f, indent=4)
+
+    # Calculate and print statistics
+    if scores:
+        normalized_scores = [score / count for score, count in zip(scores, score_counts.values()) if count != 0]
+        log_scores = np.log1p(scores)
+        visualize_scores(normalized_scores)
+        print(f"Average score: {np.mean(normalized_scores)}")
+        print(f"Median score: {np.median(normalized_scores)}")
+        print(f"Min score: {np.min(normalized_scores)}")
+        print(f"Max score: {np.max(normalized_scores)}")
+        print(f"Standard deviation: {np.std(normalized_scores)}")
+    else:
+        print("No scores were calculated.")
+
+    average_score = np.mean(normalized_scores)
+    median_score = np.median(normalized_scores)
+
+    # Filter out workflows that have a score below the average
+    results_filtered = filter_workflows(results, average_score)
+
+    # Remove outliers
+    scores_df = pd.DataFrame(normalized_scores, columns=['score'])
+    scores_df_filtered = remove_outliers(scores_df)
+
+    # Get filtered scores
+    filtered_scores = scores_df_filtered['score'].tolist()
+
+    # Filter out workflows that have a score below the average and remove empty repositories
+    results_filtered, total_workflows = filter_workflows_and_remove_empty_repos(results, average_score)
+
+    # Print the remaining number of repos and workflows
+    print(f"Remaining number of repositories: {len(results_filtered)}")
+    print(f"Remaining number of workflows: {total_workflows}")
+
+    # Save results_filtered to JSON
+    with open('../build_performance/output/workflow_scores_filtered.json', 'w') as f:
+        json.dump(results_filtered, f, indent=4)
+
+    return results, results_filtered
+
 def filter_workflows(results, average_score):
     # Filter the workflows below the average
     for repo_name, repo_data in results.items():
@@ -177,14 +259,6 @@ def score_workflow_title(title):
     return score
 
 def filter_workflows_and_remove_empty_repos(results, threshold):
-    """
-    This function removes workflows from each repository with scores below the threshold.
-    If this results in an empty repository, it also removes the repository.
-
-    :param results: dictionary of repositories containing workflows and their scores
-    :param threshold: score threshold to filter workflows
-    :return: a tuple containing the filtered dictionary and the total number of remaining workflows
-    """
     filtered_results = {}
     total_workflows = 0
     for repo_name, repo_data in results.items():
@@ -194,7 +268,6 @@ def filter_workflows_and_remove_empty_repos(results, threshold):
             total_workflows += len(repo_data)
     return filtered_results, total_workflows
 
-
 def visualize_scores(scores):
     fig, axs = plt.subplots(2)
     fig.set_size_inches(18.5, 10.5)
@@ -203,90 +276,3 @@ def visualize_scores(scores):
     sns.boxplot(x=scores, ax=axs[1])
     axs[1].set_title('Boxplot of Workflow Scores')
     plt.show()
-
-
-# Main starts here:
-results = {}
-scores = []
-score_counts = {}
-
-for filename in glob.glob(os.path.join('../../build_performance/output/workflows', '**/*.yml'), recursive=True):
-    print(filename)
-    repo_name = filename.split("/")[-2]
-    score_counts[repo_name] = 0
-    data = parse_yaml(filename)
-
-    if data is not None:
-        score = get_workflow_score(data, repo_name, score_counts)
-        if score > 0:
-            scores.append(score)
-
-        # If repo name is not yet in results, add it with an empty list
-        if repo_name not in results:
-            results[repo_name] = []
-
-        # Append a dictionary with workflow name and score to the list
-        results[repo_name].append({
-            'workflow_name': data['name'] if 'name' in data else "Unnamed",
-            'score': score
-        })
-
-        print(f'Score for {filename}: {score}')
-    else:
-        print(f'Skipping score calculation for {filename}')
-
-    print('------------------')
-
-# Normalize scores
-for repo_name, repo_data in results.items():
-    for item in repo_data:
-        if score_counts[repo_name] > 0:
-            item['score'] /= score_counts[repo_name]
-        else:
-            item['score'] = 0
-
-# Save results to JSON
-with open('workflow_scores.json', 'w') as f:
-    json.dump(results, f, indent=4)
-
-# Calculate and print statistics
-if scores:
-    normalized_scores = [score / count for score, count in zip(scores, score_counts.values()) if count != 0]
-    log_scores = np.log1p(scores)
-    visualize_scores(normalized_scores)
-    print(f"Average score: {np.mean(normalized_scores)}")
-    print(f"Median score: {np.median(normalized_scores)}")
-    print(f"Min score: {np.min(normalized_scores)}")
-    print(f"Max score: {np.max(normalized_scores)}")
-    print(f"Standard deviation: {np.std(normalized_scores)}")
-else:
-    print("No scores were calculated.")
-
-average_score = np.mean(normalized_scores)
-median_score = np.median(normalized_scores)
-
-# Filter out workflows that have a score below the average
-results_filtered = filter_workflows(results, average_score)
-
-# Remove outliers
-scores_df = pd.DataFrame(normalized_scores, columns=['score'])
-scores_df_filtered = remove_outliers(scores_df)
-
-# Get filtered scores
-filtered_scores = scores_df_filtered['score'].tolist()
-
-# Filter out workflows that have a score below the average and remove empty repositories
-results_filtered, total_workflows = filter_workflows_and_remove_empty_repos(results, average_score)
-
-# Print the remaining number of repos and workflows
-print(f"Remaining number of repositories: {len(results_filtered)}")
-print(f"Remaining number of workflows: {total_workflows}")
-
-# Save results_filtered to JSON
-with open('workflow_scores_filtered.json', 'w') as f:
-    json.dump(results_filtered, f, indent=4)
-
-
-
-
-
