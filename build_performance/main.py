@@ -6,6 +6,7 @@ import time
 from build_performance.stage import *
 from build_performance.stage.repo_build_job_extractor import RepoBuildJobExtractor
 from build_performance.stage.repo_build_log_extractor import RepoBuildLogExtractor
+from build_performance.stage.repo_build_performance_classifier import RepoBuildPerformanceClassifier
 from build_performance.stage.repo_generator import RepoGenerator
 from build_performance.stage.repo_metrics_extractor import RepoMetricsExtractor
 from build_performance.stage.repo_workflow_classifier import RepoWorkflowClassifier
@@ -30,9 +31,10 @@ def main():
         # RepoGenerator(github, args, config["RepoGenerator"]),
         # RepoWorkflowFiltering(github, args, config["RepoWorkflowFiltering"]),
         # RepoMetricsExtractor(github, args, config["RepoMetricsExtractor"]),
-        RepoWorkflowClassifier(github, args, config["RepoWorkflowClassifier"]),
+        # RepoWorkflowClassifier(github, args, config["RepoWorkflowClassifier"]),
         # RepoBuildLogExtractor(github, args, config["RepoBuildLogExtractor"]),
         # RepoBuildJobExtractor(github, args, config["RepoBuildJobExtractor"]),
+        RepoBuildPerformanceClassifier(args, config["RepoBuildPerformanceClassifier"]),
     ]
 
     for stage in pipeline:
