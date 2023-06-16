@@ -4,17 +4,21 @@ import os
 import time
 from datetime import datetime, timedelta, date
 
-from github import RateLimitExceededException
+from dotenv import load_dotenv
+
+from utils import load_repos,was_repo_processed, save_data, save_processed
+
+from github import RateLimitExceededException, Github
 
 
 class MetricsExtractor:
     def __init__(self, github):
         self.g = github
-        self.repos = self.load_repos()
+        self.repos = load_repos("./output/immature_repos.txt")
 
     def extract(self):
         for repo_name in self.repos:
-            if self.was_repo_processed(repo_name):
+            if was_repo_processed(repo_name, "./output/immature_checked.txt"):
                 print(repo_name + " was already processed")
                 continue
             self.extract_metrics(repo_name)
@@ -38,12 +42,13 @@ class MetricsExtractor:
                     "contributors_count": repo.get_contributors().totalCount,
                     "commits_count": repo.get_commits().totalCount,
                     "code_frequency": self.retrieve_code_frequency(repo),
-                    "pull_requests": self.retrieve_pull_request_information(repo)
+                    "pull_requests": repo.get_pulls().totalCount,
+                    "pull_requests_all_time": repo.get_pulls(state="all").totalCount
                 }
                 print("- saving data")
-                self.save_repo_data(repo_name, metrics)
-                print("- adding repo to processed")
-                self.save_processed(repo_name)
+                save_data(repo_name, metrics, 'output/immature_repo_data.json')
+                print("- adding repo to processed_pr_repos.txt")
+                save_processed(repo_name, "./output/immature_checked.txt")
                 break
             except RateLimitExceededException:
                 print("Rate limit exceeded. Waiting for reset...")
@@ -54,34 +59,6 @@ class MetricsExtractor:
                 time.sleep(sleep_time)
                 # Retry the current search
                 continue
-
-    def retrieve_pull_request_information(self, repo):
-        print("- retriving pull request information")
-        pull_requests = repo.get_pulls()
-        pr_data = []
-        for pr in pull_requests:
-            data = {
-                "title": pr.title,
-                "churn": pr.additions + pr.deletions,
-                "changed_files_count": pr.changed_files,
-                "commit_count": pr.commits,
-                "created_at": pr.created_at.isoformat(),
-                "merged": pr.merged
-            }
-            if pr.closed_at is not None:
-                data["closed_at"] = pr.closed_at.isoformat()
-            else:
-                data["closed_at"] = None
-            if pr.merged_at is not None:
-                data["merged_at"] = pr.merged_at.isoformat()
-            else:
-                data["merged_at"] = None
-            pr_data.append(data)
-        print("- saving pull request information")
-        self.save_pr_data(repo.full_name, pr_data)
-        print("finished retrieving pull request information")
-        return(pull_requests.totalCount)
-
 
     def retrieve_code_frequency(self, repo):
         print("- retrieving code frequency")
@@ -101,50 +78,10 @@ class MetricsExtractor:
         return churns
 
 
-    def load_repos(self):
-        repo_list = []
-        with open("./output/filtered_repos.txt", 'r') as file:
-            for line in file:
-                # Remove leading/trailing whitespace and newline characters
-                repo_name = line.strip()
-                repo_list.append(repo_name)
-        return repo_list
-
-    def save_repo_data(self, key, value):
-        data = {}
-
-        if os.path.exists('./output/repo_data.json') and os.path.getsize('./output/repo_data.json') > 0:
-            with open('./output/repo_data.json', 'r') as file:
-                data = json.load(file)  # Load existing JSON data
-
-        if 'code_frequency' in value:
-            value['code_frequency'] = json.dumps(value['code_frequency'])
-
-        data[key] = value  # Add the new key-value pair
-
-        with open('./output/repo_data.json', 'w') as file:
-            json.dump(data, file, indent=4)  # Write updated data back to the JSON file
-
-    def save_pr_data(self, key, value):
-        data = {}
-
-        if os.path.exists('./output/pull_request_data.json') and os.path.getsize('./output/pull_request_data.json') > 0:
-            with open('./output/pull_request_data.json', 'r') as file:
-                data = json.load(file)  # Load existing JSON data
-
-        data[key] = value  # Add the new key-value pair
-
-        with open('./output/pull_request_data.json', 'w') as file:
-            json.dump(data, file, indent=4)  # Write updated data back to the JSON file
-
-    def save_processed(self, repo):
-        with open("./output/processed_repos.txt", 'a') as file:
-            file.write(repo + '\n')
-
-    def was_repo_processed(self, repo_name):
-        with open("./output/processed_repos.txt", 'r') as file:
-            for line in file:
-                if line.strip() == repo_name:
-                    return True
-        return False
-
+# def setup():
+#     """Sets up external dependencies for the tool. For now, this is just environment loading."""
+#     load_dotenv()
+#
+# setup()
+# g = Github(os.environ.get("GITHUB_ACCESS_TOKEN1"))
+# MetricsExtractor(g).extract()
