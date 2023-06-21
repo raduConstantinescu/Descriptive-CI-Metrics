@@ -1,7 +1,6 @@
 import ast
 
-from project_maturity.utils import extract_data_from_json
-import numpy as np
+from project_maturity_v2.utils import extract_data_from_json
 
 
 class CodeFrequencyAnalyzer():

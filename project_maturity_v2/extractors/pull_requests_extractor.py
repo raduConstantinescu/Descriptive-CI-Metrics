@@ -4,7 +4,7 @@ import time
 
 from github import RateLimitExceededException
 
-from project_maturity.utils import load_repos, was_repo_processed, save_data, save_processed, extract_data_from_json
+from project_maturity_v2.utils import load_repos, was_repo_processed, save_data, save_processed
 
 
 class PullRequestsExtractor:

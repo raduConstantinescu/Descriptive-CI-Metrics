@@ -1,4 +1,4 @@
-from project_maturity.utils import extract_data_from_json, save_data
+from project_maturity_v2.utils import extract_data_from_json, save_data
 from project_maturity_v2.analyzers.code_frequency_analyzer import CodeFrequencyAnalyzer
 
 

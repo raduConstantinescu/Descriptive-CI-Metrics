@@ -2,7 +2,7 @@ import calendar
 import time
 from github import RateLimitExceededException
 
-from project_maturity.utils import load_repos, save_data, save_processed, was_repo_processed
+from project_maturity_v2.utils import load_repos, save_data, save_processed, was_repo_processed
 
 
 class RepoFileAnalyzer():

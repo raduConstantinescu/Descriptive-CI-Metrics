@@ -1,15 +1,9 @@
 import calendar
-import json
-import os
 import time
-from datetime import datetime, timedelta, date
 
-from dotenv import load_dotenv
+from github import RateLimitExceededException, GithubException
 
-
-from github import RateLimitExceededException, Github, GithubException
-
-from project_maturity.utils import extract_data_from_json, was_repo_processed, save_data, save_processed, load_repos
+from project_maturity_v2.utils import was_repo_processed, save_data, save_processed, load_repos
 
 
 class MetricsExtractor:
