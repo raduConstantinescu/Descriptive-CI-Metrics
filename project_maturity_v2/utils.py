@@ -31,8 +31,17 @@ def save_data(key, value, path):
         with open(path, 'r') as file:
             data = json.load(file)  # Load existing JSON data
 
-    if 'code_frequency' in value:
-        value['code_frequency'] = json.dumps(value['code_frequency'])
+    if 'weekly_code_frequency' in value:
+        value['weekly_code_frequency'] = json.dumps(value['weekly_code_frequency'])
+
+    if 'weekly_code_additions' in value:
+        value['weekly_code_additions'] = json.dumps(value['weekly_code_additions'])
+
+    if 'weekly_code_deletions' in value:
+        value['weekly_code_deletions'] = json.dumps(value['weekly_code_deletions'])
+
+    if 'weekly_commit_count_last_year' in value:
+        value['weekly_commit_count_last_year'] = json.dumps(value['weekly_commit_count_last_year'])
 
     data[key] = value  # Add the new key-value pair
 
