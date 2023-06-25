@@ -79,7 +79,7 @@ def save_filtered(repo_name, is_mature, path):
                 pass
 
     # Add new key-value pair to the dictionary
-    data[repo_name] = "mature" if is_mature else "not mature"
+    data[repo_name] = is_mature
 
     # Save the updated data to the JSON file
     with open(path, "w") as json_file:

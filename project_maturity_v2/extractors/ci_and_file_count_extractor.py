@@ -8,14 +8,14 @@ from project_maturity_v2.utils import load_repos, save_data, save_processed, was
 class RepoFileAnalyzer():
     def __init__(self, github):
         self.g = github
-        self.repos = load_repos('../outputs_v2/repos.txt')
+        self.repos = load_repos('outputs_v2/repos.txt')
         self.ci_dir_filter = [".jenkins",  ".travis.yml",  ".travis",  ".circleci/config.yml",  ".circleci",  ".github/workflows",  ".github",  "bitbucket-pipelines.yml",  "bitbucket-pipelines",  "azure-pipelines.yml",  ".azure-pipelines",  ".teamcity"]
 
 
     def count_files(self):
         for repo_name in self.repos:
             print(f"Extracting files for repo {repo_name}")
-            if was_repo_processed(repo_name, '../outputs_v2/processed_files_repos.txt'):
+            if was_repo_processed(repo_name, 'outputs_v2/processed_text_files/processed_files_repos.txt'):
                 print(f" - The repo was already processed")
                 continue
             self.extract_files_information(repo_name)
@@ -28,9 +28,9 @@ class RepoFileAnalyzer():
                 yml_files = self.extract_yml_files(repo)
                 value = {"files_count": files_count, "ci_files": yml_files}
                 print(f" - Saving repo data")
-                save_data(repo_name, value, '../outputs_v2/file_count.json')
+                save_data(repo_name, value, 'outputs_v2/file_count.json')
                 print("Adding repo to processed list")
-                save_processed(repo_name, '../outputs_v2/processed_files_repos.txt')
+                save_processed(repo_name, 'outputs_v2/processed_text_files/processed_files_repos.txt')
                 break
             except RateLimitExceededException:
                 print("Rate limit exceeded. Waiting for reset...")

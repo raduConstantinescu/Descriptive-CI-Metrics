@@ -3,6 +3,8 @@ import os
 from dotenv import load_dotenv
 from github import Github
 
+from project_maturity_v2.extractors.ci_and_file_count_extractor import RepoFileAnalyzer
+from project_maturity_v2.extractors.metrics_extractor import MetricsExtractor
 from project_maturity_v2.extractors.pull_requests_extractor import PullRequestsExtractor
 
 
@@ -14,9 +16,9 @@ def setup():
 def main(github):
     # RepositoryExtractor(github, 1000).extract()
     # MetricsExtractor(github).extract()
-    # RepoFileAnalyzer(github).count_files()
+    RepoFileAnalyzer(github).count_files()
     # RepositoryFilter().filter()
-    PullRequestsExtractor(github).extract()
+    # PullRequestsExtractor(github).extract()
 
 if __name__ == "__main__":
     setup()

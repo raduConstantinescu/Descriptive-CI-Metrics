@@ -33,7 +33,7 @@ class RepositoryExtractor():
                 result = self.g.search_repositories(query=query, sort='updated')
 
                 # Extract repository information and save names to a text file
-                with open('../outputs_v2/output.txt', 'a') as file:
+                with open('../outputs_v2/processed_text_files/output.txt', 'a') as file:
                     for i, repo in enumerate(result[:num_repos]):
                         repo_name = f"{repo.owner.login}/{repo.name}"
                         file.write(repo_name + '\n')

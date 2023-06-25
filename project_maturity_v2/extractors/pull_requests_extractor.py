@@ -10,23 +10,23 @@ from project_maturity_v2.utils import load_repos, was_repo_processed, save_data,
 class PullRequestsExtractor:
     def __init__(self, github):
         self.g = github
-        self.repos = load_repos('../outputs_v2/repos.txt')
+        self.repos = load_repos('outputs_v2/repos.txt')
 
     def extract(self):
         for repo_name in self.repos:
             print("Extracting information for: " + repo_name)
-            if was_repo_processed(repo_name, "../outputs_v2/extracted_pr_repos.txt"):
+            if was_repo_processed(repo_name, "outputs_v2/processed_text_files/extracted_pr_repos.txt"):
                 print(repo_name + " was already processed")
                 continue
             self.extract_pr_information(repo_name)
-            save_processed(repo_name, '../outputs_v2/extracted_pr_repos.txt')
+            save_processed(repo_name, 'outputs_v2/processed_text_files/extracted_pr_repos.txt')
 
     def extract_pr_information(self, repo_name):
         while True:
             try:
                 repo = self.g.get_repo(repo_name)
                 pr_information_data = self.retrieve_pull_request_information(repo)
-                save_data(repo_name, pr_information_data, '../outputs_v2/pull_request_data.json')
+                save_data(repo_name, pr_information_data, 'outputs_v2/pull_request_data.json')
                 break
             except RateLimitExceededException:
                 print("Rate limit exceeded. Waiting for reset...")

@@ -9,11 +9,11 @@ from project_maturity_v2.utils import was_repo_processed, save_data, save_proces
 class MetricsExtractor:
     def __init__(self, github):
         self.g = github
-        self.repos = load_repos('../outputs_v2/repos.txt')
+        self.repos = load_repos('outputs_v2/repos.txt')
 
     def extract(self):
         for repo_name in self.repos:
-            if was_repo_processed(repo_name, "../outputs_v2/processed_repos.txt"):
+            if was_repo_processed(repo_name, "outputs_v2/processed_text_files/processed_repos.txt"):
                 print(repo_name + " was already processed")
                 continue
             self.extract_metrics(repo_name)
@@ -45,9 +45,9 @@ class MetricsExtractor:
                     "weekly_commit_count_last_year": repo.get_stats_participation().all
                 }
                 print("- saving data")
-                save_data(repo_name, metrics, '../outputs_v2/repo_data.json')
+                save_data(repo_name, metrics, 'outputs_v2/repo_data.json')
                 print("- adding repo to processed repo file")
-                save_processed(repo_name, "../outputs_v2/processed_repos.txt")
+                save_processed(repo_name, "outputs_v2/processed_text_files/processed_repos.txt")
                 break
             except RateLimitExceededException:
                 print("Rate limit exceeded. Waiting for reset...")
