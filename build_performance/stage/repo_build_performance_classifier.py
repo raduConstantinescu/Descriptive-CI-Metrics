@@ -1,27 +1,26 @@
 import json
+import os
 import statistics
 from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
-import altair as alt
-import altair as alt
-import pandas as pd
-import numpy as np
+import seaborn as sns
+from scipy import stats
 
 from build_performance.stage.stage import PipelineStage
-from build_performance.utils import load_json_data, output_json_data
+from build_performance.utils import load_json_data
 
 
 class RepoBuildPerformanceClassifierConfig:
     def __init__(self, config):
         self.input_file = config["input_file"]
         self.output_file = config["output_file"]
+        self.plots_dir = config["plots_dir"]
         self.stats_file = config["stats_file"]
 
 
 class RepoBuildPerformanceClassifier(PipelineStage):
-    def __init__(self, args, config):
-        self.verbose = args.verbose
+    def __init__(self, config):
         self.config = RepoBuildPerformanceClassifierConfig(config)
 
     def run(self):
@@ -29,8 +28,34 @@ class RepoBuildPerformanceClassifier(PipelineStage):
         print("Running RepoBuildPerformanceClassifier")
         print(len(data))
         repo_build_performance = {}
+
+        working_hour_categories = {
+            'working_hours': {'total': 0, 'failures': 0},  # from 9am to 5pm
+            'out_of_hours': {'total': 0, 'failures': 0}  # from 5pm to 9am
+        }
+
+        time_of_day_categories = {
+            'early_morning': {'total': 0, 'failures': 0},  # 00:00 to 05:59
+            'morning': {'total': 0, 'failures': 0},  # 06:00 to 11:59
+            'afternoon': {'total': 0, 'failures': 0},  # 12:00 to 17:59
+            'evening': {'total': 0, 'failures': 0},  # 18:00 to 23:59
+        }
+
+        days_of_week = {
+            'Monday': {'total': 0, 'failures': 0},
+            'Tuesday': {'total': 0, 'failures': 0},
+            'Wednesday': {'total': 0, 'failures': 0},
+            'Thursday': {'total': 0, 'failures': 0},
+            'Friday': {'total': 0, 'failures': 0},
+            'Saturday': {'total': 0, 'failures': 0},
+            'Sunday': {'total': 0, 'failures': 0},
+        }
+
+
+
         for repo in data:
             repo_build_performance[repo['repoName']] = {}
+            # repo_build_performance[repo['repoName']]['metrics'] = repo['metrics']
             for workflow in repo['workflow']:
                 repo_build_performance[repo['repoName']][workflow['name']] = {}
                 repo_build_performance[repo['repoName']][workflow['name']]['quarter_data'] = False
@@ -38,10 +63,54 @@ class RepoBuildPerformanceClassifier(PipelineStage):
                     repo_build_performance[repo['repoName']][workflow['name']]['quarter_data'] = True
                 run_durations = []
                 run_conclusions = []
-                # lets also calculate 2 breakage rates here: failures / total runs and failures / successes + failures
                 failures = 0
                 successes = 0
+                repo_build_performance[repo['repoName']][workflow['name']]['time_of_day'] = {key: value.copy() for
+                                                                                             key, value in
+                                                                                             time_of_day_categories.items()}
+                repo_build_performance[repo['repoName']][workflow['name']]['working_hours'] = {key: value.copy() for
+                                                                                               key, value in
+                                                                                               working_hour_categories.items()}
+                repo_build_performance[repo['repoName']][workflow['name']]['days_of_week'] = {key: value.copy() for
+                                                                                              key, value in
+                                                                                              days_of_week.items()}
                 for run in workflow['runs_data']:
+                    creation_time = datetime.strptime(run['created_at'], '%Y-%m-%dT%H:%M:%S')
+                    hour = creation_time.hour
+                    day_of_week = creation_time.strftime('%A')
+
+                    # Update time_of_day categories
+                    if 0 <= hour < 6:
+                        category = 'early_morning'
+                    elif 6 <= hour < 12:
+                        category = 'morning'
+                    elif 12 <= hour < 18:
+                        category = 'afternoon'
+                    else:
+                        category = 'evening'
+
+                    repo_build_performance[repo['repoName']][workflow['name']]['time_of_day'][category]['total'] += 1
+                    if run['conclusion'] == 'failure':
+                        repo_build_performance[repo['repoName']][workflow['name']]['time_of_day'][category][
+                            'failures'] += 1
+
+                    if 9 <= hour < 17:
+                        category = 'working_hours'
+                    else:
+                        category = 'out_of_hours'
+
+                    repo_build_performance[repo['repoName']][workflow['name']]['working_hours'][category]['total'] += 1
+                    if run['conclusion'] == 'failure':
+                        repo_build_performance[repo['repoName']][workflow['name']]['working_hours'][category][
+                            'failures'] += 1
+
+                    repo_build_performance[repo['repoName']][workflow['name']]['days_of_week'][day_of_week][
+                        'total'] += 1
+                    if run['conclusion'] == 'failure':
+                        repo_build_performance[repo['repoName']][workflow['name']]['days_of_week'][day_of_week][
+                            'failures'] += 1
+
+                    # Duration logic
                     duration = datetime.strptime(run['updated_at'], '%Y-%m-%dT%H:%M:%S') - datetime.strptime(
                         run['created_at'], '%Y-%m-%dT%H:%M:%S')
                     run_durations.append(duration.total_seconds())
@@ -50,7 +119,7 @@ class RepoBuildPerformanceClassifier(PipelineStage):
                     elif run['conclusion'] == 'success':
                         successes += 1
                     run_conclusions.append(run['conclusion'])
-                # verifiy for division by zero
+                # verification for division by zero
                 breakage_rate = 0
                 breakage_rate_all_events = 0
                 if failures + successes != 0:
@@ -73,10 +142,6 @@ class RepoBuildPerformanceClassifier(PipelineStage):
                     repo_build_performance[repo['repoName']][workflow['name']]['conclusion_set_count'][
                         conclusion] = run_conclusions.count(conclusion)
 
-        with open(self.config.output_file, 'w') as json_file:
-            json.dump(repo_build_performance, json_file, indent=4)
-
-        # # Calculate stats overall over all repositories - workflows
         stats = {}
         workflow_median_durations = []
         workflow_breakage_rates = []
@@ -93,13 +158,11 @@ class RepoBuildPerformanceClassifier(PipelineStage):
         with open(self.config.stats_file, 'w') as json_file:
             json.dump(stats, json_file, indent=4)
 
-        # Based on these stats lets classify the workflows on 4 quadrants
         # 1. High breakage rate, high median duration
         # 2. High breakage rate, low median duration
         # 3. Low breakage rate, high median duration
         # 4. Low breakage rate, low median duration
 
-        # Prepare data for plotting
         duration_breakage_pairs = []
 
         for repo in repo_build_performance:
@@ -128,6 +191,8 @@ class RepoBuildPerformanceClassifier(PipelineStage):
         print(
             f'Removed {len(duration_breakage_pairs) - len(filtered_pairs)} outliers from durations and corresponding breakage rates')
 
+        os.makedirs(self.config.plots_dir, exist_ok=True)
+
         # Box plot for durations
         plt.figure(figsize=(10, 5))
         plt.boxplot(filtered_durations)
@@ -136,6 +201,7 @@ class RepoBuildPerformanceClassifier(PipelineStage):
         median_val = np.median(filtered_durations)
         plt.axhline(median_val, color='r', linestyle='dashed', linewidth=2)  # Add median line
         plt.legend([f'Median: {median_val:.2f}'])
+        plt.savefig(os.path.join(self.config.plots_dir, 'box_plot.png'))
         plt.show()
 
         # Violin plot for durations
@@ -145,25 +211,31 @@ class RepoBuildPerformanceClassifier(PipelineStage):
         plt.ylabel('Duration (minutes)')
         median_val = np.median(filtered_durations)
         plt.axhline(median_val, color='r', linestyle='dashed', linewidth=2)  # Add median line
-        plt.legend([f'Median: {median_val:.2f}'])
+        plt.legend([f'Median Duration: {median_val:.2f}'])
+        plt.savefig(os.path.join(self.config.plots_dir, 'violin_plot.png'))
         plt.show()
 
         # Plot breakage histogram
         plt.figure(figsize=(10, 5))
         plt.hist(filtered_breakages, bins='auto')
-        plt.title('Histogram of Workflow Breakages')
+        plt.title('Workflow Breakages Histogram')
         plt.xlabel('Breakage Rate')
         plt.ylabel('Frequency')
         median_val = np.median(filtered_breakages)
         plt.axvline(median_val, color='r', linestyle='dashed', linewidth=2)  # Add median line
-        plt.legend([f'Median: {median_val:.2f}'])
+        plt.legend([f'Median Breakage Rate: {median_val:.2f}'])
+        plt.savefig(os.path.join(self.config.plots_dir, 'histogram.png'))
         plt.show()
-
-
 
         # Compute median values
         median_duration = np.median(filtered_durations)
         median_breakage = np.median(filtered_breakages)
+        # add to the stats file
+        stats['median_duration_filtered'] = median_duration
+        stats['median_breakage_filtered'] = median_breakage
+
+        with open(self.config.stats_file, 'w') as json_file:
+            json.dump(stats, json_file, indent=4)
 
         # Define quadrants
         quadrants = {
@@ -174,7 +246,6 @@ class RepoBuildPerformanceClassifier(PipelineStage):
         }
 
         colors = []
-
         # Classify each workflow into a quadrant
         for duration, breakage in filtered_pairs:
             if breakage > median_breakage and duration > median_duration:
@@ -190,19 +261,146 @@ class RepoBuildPerformanceClassifier(PipelineStage):
                 quadrants['LBLT'] += 1
                 colors.append('g')
 
-        # Plot data
         plt.figure(figsize=(10, 5))
+
+        # Limit x-axis between 0 and 30
+        plt.xlim(0, 30)
+
+        # Adjust the limit of the y-axis
+        plt.ylim(0, 0.6)
+
         plt.scatter(filtered_durations, filtered_breakages, color=colors, alpha=0.5)
         plt.axhline(median_breakage, color='k', linestyle='--')
         plt.axvline(median_duration, color='k', linestyle='--')
-        plt.xlabel('Median Duration (minutes)')
-        plt.ylabel('Breakage Rate')
-        plt.title('Workflows by Build Performance: Duration vs Breakage Rate')
+
+        # Add labels with increased font size
+        plt.xlabel('Median Duration (minutes)', fontsize=14)
+        plt.ylabel('Median Breakage Rate', fontsize=14)
+
+        plt.title('Workflows Performance Clustering', fontsize=16)
         plt.legend([f'Median Duration: {median_duration:.2f} minutes', f'Median Breakage Rate: {median_breakage:.2f}'])
         plt.grid(True)
+        plt.savefig(os.path.join(self.config.plots_dir, 'scatter_plot.png'))
         plt.show()
 
         print(f'Quadrant counts: {quadrants}')
+
+        # Classify each workflow into a quadrant
+        for repo in repo_build_performance:
+            for workflow in repo_build_performance[repo]:
+                duration = repo_build_performance[repo][workflow]['median_duration'] / 60  # Convert to minutes
+                breakage = repo_build_performance[repo][workflow]['breakage_rate']
+
+                if duration > median_duration and breakage > median_breakage:
+                    repo_build_performance[repo][workflow]['quadrant'] = 'HBHT'
+                elif duration <= median_duration and breakage > median_breakage:
+                    repo_build_performance[repo][workflow]['quadrant'] = 'HBLT'
+                elif duration > median_duration and breakage <= median_breakage:
+                    repo_build_performance[repo][workflow]['quadrant'] = 'LBHT'
+                else:
+                    repo_build_performance[repo][workflow]['quadrant'] = 'LBLT'
+
+        with open(self.config.output_file, 'w') as json_file:
+            json.dump(repo_build_performance, json_file, indent=4)
+
+        self.visualize_languages_by_quadrant(repo_build_performance, data)
+        self.visualize_quadrant_metrics(repo_build_performance, data)
+        self.visualize_by_moment_of_execution(repo_build_performance, data)
+
+
+    def visualize_by_moment_of_execution(self, repo_build_performance, data):
+        quadrants = ['HBHT', 'HBLT', 'LBHT', 'LBLT']
+
+    def visualize_quadrant_metrics(self, repo_build_performance, data):
+        # Define metrics to be visualized
+        metrics = ['stars', 'contributors', 'commits']
+        # Get metric mean for each quadrant
+        quadrant_metrics = {
+            'HBHT': {metric: [] for metric in metrics},
+            'HBLT': {metric: [] for metric in metrics},
+            'LBHT': {metric: [] for metric in metrics},
+            'LBLT': {metric: [] for metric in metrics}
+        }
+
+        for repo in data:
+            for workflow in repo['workflow']:
+                quadrant_of_workflow = repo_build_performance[repo['repoName']][workflow['name']]['quadrant']
+                for metric in metrics:
+                    quadrant_metrics[quadrant_of_workflow][metric].append(repo['metrics'][metric])
+
+        # Calculate mean for each metric in each quadrant
+        for quadrant, metrics in quadrant_metrics.items():
+            for metric, values in metrics.items():
+                quadrant_metrics[quadrant][metric] = statistics.mean(values)
+
+        os.makedirs(self.config.plots_dir, exist_ok=True)
+
+        # Create a single figure with three subplots for each metric
+        fig, axs = plt.subplots(3, 1, figsize=(10, 30))
+        fig.suptitle('Mean of Stars, Contributors, and Commits in Each Quadrant')
+
+        def make_autopct(values):
+            def my_autopct(pct):
+                total = sum(values)
+                val = int(round(pct * total / 100.0))
+                return '{p:.1f}%  ({v:d})'.format(p=pct, v=val)
+
+            return my_autopct
+
+        for index, metric in enumerate(metrics):
+            ax = axs[index]
+            values = [quadrant_metrics[quadrant][metric] for quadrant in quadrant_metrics]
+            ax.pie(values, labels=list(quadrant_metrics.keys()), autopct=make_autopct(values), startangle=90)
+            ax.axis('equal')
+            ax.set_title(f'Mean {metric.capitalize()}')
+
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # to ensure the suptitle and subplots do not overlap
+        plt.savefig(os.path.join(self.config.plots_dir, 'quadrant_metrics.png'))
+        plt.show()
+
+    def visualize_languages_by_quadrant(self, repo_build_performance, data):
+        quadrant_languages = {
+            'HBHT': {},
+            'HBLT': {},
+            'LBHT': {},
+            'LBLT': {}
+        }
+
+        workflows_by_language = {}
+        repos_by_language = {}
+
+        for repo in data:
+            for workflow in repo['workflow']:
+                quadrant_of_workflow = repo_build_performance[repo['repoName']][workflow['name']]['quadrant']
+                language_of_repo = repo['metrics']['language']
+                if language_of_repo not in workflows_by_language:
+                    workflows_by_language[language_of_repo] = 0
+                workflows_by_language[language_of_repo] += 1
+                if language_of_repo not in repos_by_language:
+                    repos_by_language[language_of_repo] = 0
+                repos_by_language[language_of_repo] += 1
+                if language_of_repo not in quadrant_languages[quadrant_of_workflow]:
+                    quadrant_languages[quadrant_of_workflow][language_of_repo] = 0
+                quadrant_languages[quadrant_of_workflow][language_of_repo] += 1
+
+        os.makedirs(self.config.plots_dir, exist_ok=True)
+
+        fig, axs = plt.subplots(2, 2, figsize=(20, 20))
+        fig.suptitle('Languages in Quadrants')
+
+        for index, (quadrant, languages) in enumerate(quadrant_languages.items()):
+            ax = axs[index // 2, index % 2]
+            ax.pie(list(languages.values()), labels=list(languages.keys()), autopct='%1.1f%%', startangle=90)
+            ax.axis('equal')
+            ax.set_title(f'{quadrant}')
+
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        plt.savefig(os.path.join(self.config.plots_dir, 'quadrant_languages.png'))
+        plt.show()
+
+        print(f'Workflows by language: {workflows_by_language}')
+        print(f'Repos by language: {repos_by_language}')
+
 
     def remove_outliers(self, data):
         # Compute the IQR
@@ -219,11 +417,4 @@ class RepoBuildPerformanceClassifier(PipelineStage):
         filtered_data = [x for x in data if x >= lower_bound and x <= upper_bound]
 
         return filtered_data, outliers
-
-
-
-
-
-
-
 

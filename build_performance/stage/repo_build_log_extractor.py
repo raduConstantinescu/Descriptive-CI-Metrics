@@ -77,7 +77,6 @@ class RepoBuildLogExtractor(PipelineStage):
 
         with self.lock:
             self.results.append(repo_info)
-            # lets write to file here
 
     def download_build_runs_for_repo(self, repo, repo_info):
         for workflow_data in repo_info["workflow"]:
@@ -88,7 +87,7 @@ class RepoBuildLogExtractor(PipelineStage):
 
             # Retrieve the GitHub Workflow object using the workflow ID
             workflow = repo.get_workflow(workflow_id)
-            workflow_runs = self.download_workflow_runs(workflow, target_runs)  # get the runs
+            workflow_runs = self.download_workflow_runs(workflow, target_runs)
             print(f"Downloaded {len(workflow_runs)} runs for {repo.full_name} and with workflow name {workflow_data['name']}")
             # Append the runs to the workflow_data dictionary
             workflow_data['runs_data'] = workflow_runs

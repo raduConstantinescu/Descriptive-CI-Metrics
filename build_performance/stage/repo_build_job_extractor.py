@@ -72,11 +72,11 @@ class RepoBuildJobExtractor(PipelineStage):
                             except Exception as exc:
                                 self.log_info(f'Generated an exception: {exc}')
                         print(f"Finished processing workflow with name {workflow['name']} for {repo['repoName']}")
-                    # Save the modified data after processing each repo
                     outfile.write(json.dumps(repo, indent=4) + "\n")
+
                 print(f"Finished processing {repo['repoName']}")
-                # Add the repo to the processed set and write it to the file
                 processed_repos.add(repo['repoName'])
+
                 with open('processed_repos.txt', 'a') as processed_file:
                     processed_file.write(repo['repoName'] + '\n')
 

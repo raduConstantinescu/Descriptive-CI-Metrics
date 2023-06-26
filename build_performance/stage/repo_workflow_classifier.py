@@ -1,10 +1,6 @@
 # The aim of this stage is to rank workflows based on their likelihood of being a build and test workflow.
 # Limitation is that commands can be wrapped in scripts or custom build / steps command can be used.
 
-# Starting with 283 repos
-# Removed 1213 workflows
-# Remaining 68 repos with 106 workflows
-
 
 import yaml
 import glob
@@ -52,7 +48,6 @@ class RepoWorkflowClassifier(PipelineStage):
         for language, count in repos_by_language.items():
             print(f"{language}: {count}")
 
-    # lets download starting from a given repo
     def download_workflows(self, data):
         os.makedirs(self.config.workflow_dir, exist_ok=True)
 
@@ -60,26 +55,18 @@ class RepoWorkflowClassifier(PipelineStage):
             repo_name = repo_info["repoName"]
             repo = self.github.get_repo(repo_name)
 
-            # Create a directory for each repository inside workflow_dir
-
-
             repo_dir = os.path.join(self.config.workflow_dir, repo_name.replace('/', '_'))
-            # if the directory already exists skip to next repository
             if os.path.exists(repo_dir):
                 continue
             os.makedirs(repo_dir, exist_ok=True)
 
-            # Assuming workflow files are in .github/workflows/ directory
+            # Assumption files in: .github/workflows/ directory
             try:
                 contents = repo.get_contents(".github/workflows")
                 for content_file in contents:
                     if content_file.path.endswith('.yaml') or content_file.path.endswith('.yml'):
                         print(f"Downloading from repo {repo_name} workflow {content_file.name}...")
-
-                        # Get the content of the file
                         content = content_file.decoded_content.decode()
-
-                        # Write the content to a local file
                         with open(os.path.join(repo_dir, content_file.name), 'w') as f:
                             f.write(content)
 
