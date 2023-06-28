@@ -31,7 +31,7 @@ class IssueModule(MiningModule):
     """
 
     def __init__(self, params=None):
-        self.issues = super().repo.get_issues()
+        self.issues = super().repo.get_issues(state='closed', labels=['bug'])
         self.json = {'issues': {}}
         self.params = [i.value for i in IssueParams] if params is None else params
 
@@ -41,6 +41,10 @@ class IssueModule(MiningModule):
                 self._extract_creation_date()
             elif param in (IssueParams.CLOSED_AT, IssueParams.CLOSED_AT.value):
                 self._extract_close_date()
+            elif param in (IssueParams.COUNT, IssueParams.COUNT.value):
+                self._extract_issue_count()
+            elif param in (IssueParams.CLOSING_TIME, IssueParams.CLOSING_TIME.value):
+                self._extract_issue_closing_time()
             else:
                 raise ModuleParamException("Module does not have param: " + str(param))
         return self.json
@@ -51,6 +55,12 @@ class IssueModule(MiningModule):
     def _extract_close_date(self):
         self.json['issues']['close_dates'] = [issue.closed_at for issue in self.issues]
 
+    def _extract_issue_count(self):
+        self.json['issues']['count'] = self.issues.totalCount
+
+    def _extract_issue_closing_time(self):
+        self.json['issues']['closing_time'] = [(issue.closed_at - issue.created_at).total_seconds() for issue in self.issues]
+
 
 class IssueParams(Enum):
     """
@@ -58,3 +68,5 @@ class IssueParams(Enum):
     """
     CREATED_AT = 'created_at'
     CLOSED_AT = 'closed_at'
+    COUNT = 'count'
+    CLOSING_TIME = 'closing_time'

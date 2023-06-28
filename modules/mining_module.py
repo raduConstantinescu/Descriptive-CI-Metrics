@@ -19,7 +19,7 @@ class MiningModule(abc.ABC):
 
     def get_repo(self):
         """
-        Returns the repository that is mined. This method mainly exists because pylist enforces
+        Returns the repository that is mined. This method mainly exists because pylint enforces
         to have at least 2 public methods.
         """
         return self.repo

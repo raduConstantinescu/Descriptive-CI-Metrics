@@ -37,6 +37,8 @@ class ReleaseModule(MiningModule):
         for param in self.params:
             if param in (ReleaseParams.DATE, ReleaseParams.DATE.value):
                 self._extract_release_date()
+            elif param in (ReleaseParams.COUNT, ReleaseParams.COUNT.value):
+                self._extract_release_count()
             else:
                 raise ModuleParamException("Module does not have param: " + str(param))
         return self.json
@@ -44,9 +46,13 @@ class ReleaseModule(MiningModule):
     def _extract_release_date(self):
         self.json['releases']['dates'] = [release.published_at for release in self.releases]
 
+    def _extract_release_count(self):
+        self.json['releases']['count'] = self.releases.totalCount
+
 
 class ReleaseParams(Enum):
     """
     A class that holds enum values for the functions in the release_module class
     """
     DATE = 'date'
+    COUNT = 'count'

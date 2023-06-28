@@ -51,6 +51,8 @@ class PullRequestModule(MiningModule):
             self._extract_pull_request_titles()
         elif param in (PullRequestParams.BODIES, PullRequestParams.BODIES.value):
             self._extract_pull_request_bodies()
+        elif param in (PullRequestParams.COUNT_CLOSED, PullRequestParams.COUNT_CLOSED.value):
+            self._extract_count_merged_pull_requests()
         else:
             raise ModuleParamException("Module does not have param: " + str(param))
 
@@ -60,6 +62,9 @@ class PullRequestModule(MiningModule):
     def _extract_pull_request_bodies(self):
         self.json['pull_requests']['bodies'] = [pull.body for pull in self.pulls]
 
+    def _extract_count_merged_pull_requests(self):
+        self.json['pull_requests']['count_closed'] = sum(1 for pull in self.pulls if pull.closed_at is not None)
+
 
 class PullRequestParams(Enum):
     """
@@ -67,3 +72,4 @@ class PullRequestParams(Enum):
     """
     TITLES = 'titles'
     BODIES = 'bodies'
+    COUNT_CLOSED = 'count_closed'
